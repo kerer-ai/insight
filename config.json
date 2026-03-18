@@ -1,0 +1,8 @@
+{
+        "access_token": "xxxxxxxx",
+        "label_ci_success": "ci-pipeline-passed",
+        "label_ci_running": "ci-pipeline-running",
+        "label_yellow_ci_running": "SC-RUNNING",
+        "label_yellow_ci_success": "SC-SUCC",
+        "owner": "Ascend"
+}

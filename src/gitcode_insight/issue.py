@@ -6,7 +6,6 @@ GitCode Issue 洞察模块
 
 import json
 import time
-import csv
 import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
@@ -196,13 +195,14 @@ class GitCodeIssueInsight:
                     break
 
         # 计算关闭耗时
+        # GitCode API 返回 finished_at 而非 closed_at
         close_duration = None
-        closed_at = issue.get("closed_at")
-        if closed_at and created_at_str:
+        finished_at = issue.get("finished_at") or issue.get("closed_at")
+        if finished_at and created_at_str:
             try:
-                closed_time = datetime.fromisoformat(closed_at.replace("Z", "+00:00"))
+                finished_time = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
                 created_time = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
-                close_duration = (closed_time - created_time).total_seconds() / 60
+                close_duration = (finished_time - created_time).total_seconds() / 60
             except:
                 pass
 
@@ -220,7 +220,7 @@ class GitCodeIssueInsight:
             "state": issue.get("state", ""),
             "created_at": created_at_str,
             "updated_at": issue.get("updated_at", ""),
-            "closed_at": closed_at or "",
+            "finished_at": finished_at or "",
             "creator": issue.get("user", {}).get("login", ""),
             "labels": ",".join(labels),
             "comments_count": issue.get("comments", 0),
@@ -231,29 +231,10 @@ class GitCodeIssueInsight:
             "close_duration": round(close_duration, 2) if close_duration else None
         }
 
-    def save_to_csv(self, issues_data: List[Dict], filename: str):
-        """保存到 CSV 文件"""
-        if not issues_data:
-            print("没有数据可保存")
-            return
-
-        fieldnames = [
-            "issue_number", "title", "state", "created_at", "updated_at",
-            "closed_at", "creator", "labels", "comments_count", "assignees",
-            "milestone", "html_url", "first_response_time", "close_duration"
-        ]
-
-        with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(issues_data)
-
-        print(f"已保存到: {filename}")
-
     def calculate_insights(self, issues_data: List[Dict]) -> Dict:
         """计算洞察指标"""
         total = len(issues_data)
-        opened = [i for i in issues_data if i["state"] == "opened"]
+        opened = [i for i in issues_data if i["state"] == "open"]
         closed = [i for i in issues_data if i["state"] == "closed"]
 
         # 新增 Issue
@@ -295,10 +276,11 @@ class GitCodeIssueInsight:
 
         for issue in closed:
             try:
-                closed_date = datetime.fromisoformat(issue["closed_at"].replace("Z", "+00:00"))
-                date_str = closed_date.strftime("%Y-%m-%d")
-                if date_str in daily_trend:
-                    daily_trend[date_str]["closed"] += 1
+                finished_date = datetime.fromisoformat(issue["finished_at"].replace("Z", "+00:00"))
+                date_str = finished_date.strftime("%Y-%m-%d")
+                if date_str not in daily_trend:
+                    daily_trend[date_str] = {"created": 0, "closed": 0}
+                daily_trend[date_str]["closed"] += 1
             except:
                 pass
 
@@ -328,12 +310,11 @@ class GitCodeIssueInsight:
                 "by_label": dict(sorted(label_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
                 "by_creator": dict(sorted(creator_dist.items(), key=lambda x: x[1], reverse=True)[:10])
             },
-            "daily_trend": dict(sorted(daily_trend.items())),
-            "issues": issues_data
-        }
+            "daily_trend": dict(sorted(daily_trend.items()))
+        }, issues_data
 
     def generate_html_report(self, insights: Dict, output_file: str):
-        """生成 HTML 报告"""
+        """生成 HTML 报告（统计数据总结）"""
         summary = insights["summary"]
         efficiency = insights["efficiency"]
         distribution = insights["distribution"]
@@ -347,6 +328,10 @@ class GitCodeIssueInsight:
         label_names = list(distribution["by_label"].keys())
         label_counts = list(distribution["by_label"].values())
 
+        # 创建人分布
+        creator_names = list(distribution["by_creator"].keys())[:10]
+        creator_counts = list(distribution["by_creator"].values())[:10]
+
         html_content = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -359,6 +344,7 @@ class GitCodeIssueInsight:
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; color: #333; }}
         .container {{ max-width: 1200px; margin: 0 auto; padding: 20px; }}
         h1 {{ text-align: center; color: #1a365d; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; }}
+        h2 {{ color: #1a365d; margin: 20px 0 15px 0; }}
         .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }}
         .stat-card {{ background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }}
         .stat-value {{ font-size: 32px; font-weight: bold; color: #1e40af; }}
@@ -366,16 +352,9 @@ class GitCodeIssueInsight:
         .charts-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 30px; }}
         .chart-box {{ background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
         .chart-title {{ font-size: 16px; font-weight: bold; color: #1a365d; margin-bottom: 15px; }}
-        .table-section {{ background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }}
-        table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
-        th, td {{ padding: 10px 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
-        th {{ background: #f1f5f9; font-weight: 600; }}
-        tr:hover {{ background: #f8fafc; }}
-        a {{ color: #2563eb; text-decoration: none; }}
-        a:hover {{ text-decoration: underline; }}
-        .badge {{ display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; }}
-        .badge-opened {{ background: #dcfce7; color: #166534; }}
-        .badge-closed {{ background: #fee2e2; color: #991b1b; }}
+        .dist-section {{ background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }}
+        .dist-item {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }}
+        .dist-item:last-child {{ border-bottom: none; }}
         .footer {{ text-align: center; color: #64748b; padding: 20px; font-size: 12px; }}
     </style>
 </head>
@@ -383,6 +362,7 @@ class GitCodeIssueInsight:
     <div class="container">
         <h1>Issue 洞察报告 - {insights["repo"]}</h1>
 
+        <h2>统计概览</h2>
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value">{summary["total_issues"]}</div>
@@ -406,6 +386,7 @@ class GitCodeIssueInsight:
             </div>
         </div>
 
+        <h2>效率指标</h2>
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value">{efficiency["avg_first_response_time_minutes"]:.1f}</div>
@@ -421,6 +402,7 @@ class GitCodeIssueInsight:
             </div>
         </div>
 
+        <h2>趋势图表</h2>
         <div class="charts-grid">
             <div class="chart-box">
                 <div class="chart-title">每日 Issue 趋势</div>
@@ -432,48 +414,22 @@ class GitCodeIssueInsight:
             </div>
         </div>
 
-        <div class="table-section">
-            <h3 style="margin-bottom: 15px; color: #1a365d;">Issue 列表</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>标题</th>
-                        <th>状态</th>
-                        <th>创建人</th>
-                        <th>创建时间</th>
-                        <th>标签</th>
-                        <th>评论</th>
-                        <th>首次响应(分钟)</th>
-                        <th>关闭耗时(小时)</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <h2>分布统计</h2>
+        <div class="charts-grid">
+            <div class="dist-section">
+                <div class="chart-title">标签分布 Top 10</div>
 '''
+        for label, count in distribution["by_label"].items():
+            html_content += f'''                <div class="dist-item"><span>{label}</span><span>{count}</span></div>\n'''
 
-        # 添加 Issue 行
-        for issue in insights["issues"][:100]:
-            state_class = "badge-opened" if issue["state"] == "opened" else "badge-closed"
-            response_time = f"{issue['first_response_time']:.1f}" if issue["first_response_time"] else "-"
-            close_hours = f"{issue['close_duration']/60:.1f}" if issue["close_duration"] else "-"
-
-            html_content += f'''
-                    <tr>
-                        <td><a href="{issue['html_url']}" target="_blank">{issue['issue_number']}</a></td>
-                        <td>{issue['title'][:50]}{'...' if len(issue['title']) > 50 else ''}</td>
-                        <td><span class="badge {state_class}">{issue['state']}</span></td>
-                        <td>{issue['creator']}</td>
-                        <td>{issue['created_at'][:10] if issue['created_at'] else '-'}</td>
-                        <td>{issue['labels'][:30]}{'...' if len(issue['labels']) > 30 else ''}</td>
-                        <td>{issue['comments_count']}</td>
-                        <td>{response_time}</td>
-                        <td>{close_hours}</td>
-                    </tr>
+        html_content += f'''            </div>
+            <div class="dist-section">
+                <div class="chart-title">创建人分布 Top 10</div>
 '''
+        for creator, count in distribution["by_creator"].items():
+            html_content += f'''                <div class="dist-item"><span>{creator}</span><span>{count}</span></div>\n'''
 
-        html_content += f'''
-                </tbody>
-            </table>
+        html_content += f'''            </div>
         </div>
 
         <div class="footer">
@@ -535,7 +491,69 @@ class GitCodeIssueInsight:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        print(f"已生成 HTML 报告: {output_file}")
+        print(f"HTML 报告: {output_file}")
+
+    def generate_markdown_report(self, insights: Dict, output_file: str):
+        """生成 Markdown 报告（统计数据总结）"""
+        summary = insights["summary"]
+        efficiency = insights["efficiency"]
+        distribution = insights["distribution"]
+        daily_trend = insights["daily_trend"]
+
+        md_content = f'''# Issue 洞察报告 - {insights["repo"]}
+
+> 分析时间: {insights["analysis_time"]} | 分析周期: {insights["analysis_period"]}
+
+## 统计概览
+
+| 指标 | 数值 |
+|------|------|
+| 总 Issue 数 | {summary["total_issues"]} |
+| 新增 Issue | {summary["new_issues"]} |
+| 未关闭 | {summary["opened_issues"]} |
+| 已关闭 | {summary["closed_issues"]} |
+| 关闭率 | {summary["close_rate"]}% |
+
+## 效率指标
+
+| 指标 | 数值 |
+|------|------|
+| 平均首次响应 | {efficiency["avg_first_response_time_minutes"]:.1f} 分钟 |
+| 平均关闭耗时 | {efficiency["avg_close_duration_hours"]:.1f} 小时 |
+| 24h响应率 | {efficiency["timely_response_rate"]}% |
+| 响应时间样本数 | {efficiency["response_time_samples"]} |
+| 关闭耗时样本数 | {efficiency["close_duration_samples"]} |
+
+## 每日趋势
+
+| 日期 | 新增 | 关闭 |
+|------|------|------|
+'''
+        for date, counts in sorted(daily_trend.items()):
+            md_content += f"| {date} | {counts['created']} | {counts['closed']} |\n"
+
+        md_content += '''
+## 标签分布 Top 10
+
+| 标签 | 数量 |
+|------|------|
+'''
+        for label, count in distribution["by_label"].items():
+            md_content += f"| {label} | {count} |\n"
+
+        md_content += '''
+## 创建人分布 Top 10
+
+| 创建人 | 数量 |
+|------|------|
+'''
+        for creator, count in distribution["by_creator"].items():
+            md_content += f"| {creator} | {count} |\n"
+
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+
+        print(f"Markdown 报告: {output_file}")
 
     def run(self) -> Dict:
         """执行完整的分析流程"""
@@ -561,23 +579,26 @@ class GitCodeIssueInsight:
             analyzed = self.analyze_issue(issue)
             issues_data.append(analyzed)
 
-        # 保存中间数据 CSV
-        csv_file = os.path.join(self.output_dir, f"issues_{self.repo}_{self.days}d.csv")
-        self.save_to_csv(issues_data, csv_file)
-
         # 计算洞察指标
         print(f"\n计算洞察指标...")
-        insights = self.calculate_insights(issues_data)
+        insights, raw_data = self.calculate_insights(issues_data)
 
-        # 保存洞察结果 JSON
+        # 保存 JSON（统计数据 + 原始数据）
         json_file = os.path.join(self.output_dir, f"issue_insight_{self.repo}_{self.days}d.json")
+        full_data = {
+            "statistics": insights,
+            "raw_data": raw_data
+        }
         with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(insights, f, ensure_ascii=False, indent=2)
-        print(f"已保存洞察结果: {json_file}")
+            json.dump(full_data, f, ensure_ascii=False, indent=2)
 
         # 生成 HTML 报告
         html_file = os.path.join(self.output_dir, f"issue_insight_{self.repo}_{self.days}d.html")
         self.generate_html_report(insights, html_file)
+
+        # 生成 Markdown 报告
+        md_file = os.path.join(self.output_dir, f"issue_insight_{self.repo}_{self.days}d.md")
+        self.generate_markdown_report(insights, md_file)
 
         # 打印摘要
         print(f"\n{'='*60}")
@@ -585,10 +606,15 @@ class GitCodeIssueInsight:
         print(f"{'='*60}")
         print(f"总 Issue 数: {insights['summary']['total_issues']}")
         print(f"新增 Issue: {insights['summary']['new_issues']}")
+        print(f"未关闭: {insights['summary']['opened_issues']}")
         print(f"已关闭: {insights['summary']['closed_issues']}")
         print(f"关闭率: {insights['summary']['close_rate']}%")
         print(f"平均首次响应: {insights['efficiency']['avg_first_response_time_minutes']:.1f} 分钟")
         print(f"平均关闭耗时: {insights['efficiency']['avg_close_duration_hours']:.1f} 小时")
+        print(f"\n输出文件:")
+        print(f"- JSON 数据: {json_file}")
+        print(f"- HTML 报告: {html_file}")
+        print(f"- Markdown 报告: {md_file}")
         print(f"{'='*60}\n")
 
-        return insights
+        return full_data

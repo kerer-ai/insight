@@ -164,7 +164,7 @@ class GitCodePRInsight:
 
         # 计算打开天数
         open_days = None
-        if pr.get("state") == "opened":
+        if pr.get("state") == "open":
             try:
                 created_time = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
                 open_days = (datetime.now(timezone.utc) - created_time).total_seconds() / 86400
@@ -243,7 +243,7 @@ class GitCodePRInsight:
         total = len(prs_data)
 
         # 状态分布
-        opened = [p for p in prs_data if p["state"] == "opened"]
+        opened = [p for p in prs_data if p["state"] == "open"]
         merged = [p for p in prs_data if p["merged_at"]]
         closed_not_merged = [p for p in prs_data if p["state"] == "closed" and not p["merged_at"]]
 
@@ -583,9 +583,9 @@ class GitCodePRInsight:
             if pr["merged_at"]:
                 state_class = "badge-merged"
                 state_text = "merged"
-            elif pr["state"] == "opened":
+            elif pr["state"] == "open":
                 state_class = "badge-opened"
-                state_text = "opened"
+                state_text = "open"
             else:
                 state_class = "badge-closed"
                 state_text = "closed"

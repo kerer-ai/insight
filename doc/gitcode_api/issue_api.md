@@ -43,7 +43,7 @@
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | access_token | string | 是 | 用户授权码 |
-| state | string | 否 | 状态：`opened` / `closed` / `all`，默认 opened |
+| state | string | 否 | 状态：`open` / `closed` / `all`，默认 open |
 | labels | string | 否 | 标签名，多个用逗号分隔 |
 | since | string | 否 | 起始时间，格式：ISO 8601 |
 | page | integer | 否 | 页码，默认 1 |
@@ -54,7 +54,7 @@
 ### 请求示例
 
 ```http
-GET https://api.gitcode.com/api/v5/repos/testowner/testrepo/issues?access_token=xxx&state=opened&page=1&per_page=20
+GET https://api.gitcode.com/api/v5/repos/testowner/testrepo/issues?access_token=xxx&state=open&page=1&per_page=20
 ```
 
 ### 响应
@@ -93,38 +93,83 @@ GET https://api.gitcode.com/api/v5/repos/testowner/testrepo/issues?access_token=
 | id | integer | Issue ID |
 | html_url | string | 网页地址 |
 | number | string | 编号 |
-| state | string | 状态 |
+| state | string | 状态：`open` / `closed` |
 | title | string | 标题 |
 | body | string | 内容 |
 | user | object | 创建人 |
 | repository | object | 所属仓库 |
 | created_at | string | 创建时间 |
 | updated_at | string | 更新时间 |
-| closed_at | string | 关闭时间 |
+| finished_at | string | **关闭时间**（GitCode 特有字段，closed_at 始终为空） |
+| closed_at | string | 关闭时间（始终为 null，请使用 finished_at） |
+| issue_state | string | 详细状态名称，如"已完成" |
 | labels | array | 标签 |
 | comments | integer | 评论数 |
 | milestone | object | 里程碑 |
 | assignees | array | 指派人 |
 | custom_fields | array | 自定义字段 |
 
+> **重要说明**：GitCode API 中，已关闭 Issue 的关闭时间存储在 `finished_at` 字段，`closed_at` 字段始终为 `null`。 |
+
 ### 响应示例
+
+#### 开放状态的 Issue
 
 ```json
 {
-  "id": 152212,
-  "html_url": "https://test.gitcode.net/dengmengmian/test01/issues/3",
-  "number": "3",
-  "state": "opened",
-  "title": "测试Issue",
+  "id": 3809569,
+  "html_url": "https://gitcode.com/openeuler/kernel/issues/8760",
+  "number": "8760",
+  "state": "open",
+  "title": "Feature: Add new feature",
   "user": {
-    "id": "661ce4eab470b1430d456154",
-    "login": "dengmengmian",
-    "name": "麻凡_"
+    "id": "6809eb2292685e00dfb27536",
+    "login": "mufengyan",
+    "name": "mufengyan"
   },
-  "created_at": "2024-01-15T10:30:00+08:00",
-  "updated_at": "2024-01-15T10:30:00+08:00",
-  "labels": [],
-  "comments": 0
+  "repository": {
+    "id": 8744898,
+    "full_name": "openeuler/kernel",
+    "path": "kernel"
+  },
+  "created_at": "2026-03-18T19:18:33+08:00",
+  "updated_at": "2026-03-19T11:30:09+08:00",
+  "finished_at": null,
+  "closed_at": null,
+  "issue_state": "待处理",
+  "labels": [{"id": 18027, "name": "sig/Kernel", "color": "#2865E0"}],
+  "comments": 4,
+  "assignees": []
+}
+```
+
+#### 已关闭的 Issue
+
+```json
+{
+  "id": 3796585,
+  "html_url": "https://gitcode.com/openeuler/kernel/issues/8696",
+  "number": "8696",
+  "state": "closed",
+  "title": "[OLK-6.6] l2tp: fix double dst_release()",
+  "user": {
+    "id": "695caf89728aee026d2b7e27",
+    "login": "lixiasong",
+    "name": "lixiasong"
+  },
+  "repository": {
+    "id": 8744898,
+    "full_name": "openeuler/kernel",
+    "path": "kernel"
+  },
+  "created_at": "2026-03-10T17:45:19+08:00",
+  "updated_at": "2026-03-19T11:03:26+08:00",
+  "finished_at": "2026-03-19T11:03:19+08:00",
+  "closed_at": null,
+  "issue_state": "已完成",
+  "labels": [{"id": 18027, "name": "sig/Kernel", "color": "#2865E0"}],
+  "comments": 2,
+  "assignees": []
 }
 ```
 

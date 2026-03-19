@@ -208,7 +208,7 @@ class TestGitCodeIssueInsight:
             result = insight.analyze_issue(sample_issue_data[0])
 
         assert result["issue_number"] == 1
-        assert result["state"] == "opened"
+        assert result["state"] == "open"
         assert result["creator"] == "user1"
         assert result["labels"] == "bug"
         assert result["first_response_time"] is not None  # 有响应时间
@@ -246,10 +246,10 @@ class TestGitCodeIssueInsight:
             {
                 "issue_number": 1,
                 "title": "Bug 1",
-                "state": "opened",
+                "state": "open",
                 "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
-                "closed_at": None,
+                "finished_at": "",
                 "creator": "user1",
                 "labels": "bug",
                 "comments_count": 2,
@@ -265,7 +265,7 @@ class TestGitCodeIssueInsight:
                 "state": "closed",
                 "created_at": (datetime.now(timezone.utc) - timedelta(days=10)).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
-                "closed_at": (datetime.now(timezone.utc) - timedelta(days=8)).isoformat(),
+                "finished_at": (datetime.now(timezone.utc) - timedelta(days=8)).isoformat(),
                 "creator": "user2",
                 "labels": "enhancement",
                 "comments_count": 5,
@@ -277,14 +277,15 @@ class TestGitCodeIssueInsight:
             }
         ]
 
-        result = insight.calculate_insights(issues_data)
+        insights, raw_data = insight.calculate_insights(issues_data)
 
-        assert result["summary"]["total_issues"] == 2
-        assert result["summary"]["opened_issues"] == 1
-        assert result["summary"]["closed_issues"] == 1
-        assert result["summary"]["close_rate"] == 50.0
-        assert result["efficiency"]["avg_first_response_time_minutes"] == 90.0  # (120+60)/2
-        assert result["efficiency"]["avg_close_duration_hours"] == 48.0  # 2880/60
+        assert insights["summary"]["total_issues"] == 2
+        assert insights["summary"]["opened_issues"] == 1
+        assert insights["summary"]["closed_issues"] == 1
+        assert insights["summary"]["close_rate"] == 50.0
+        assert insights["efficiency"]["avg_first_response_time_minutes"] == 90.0  # (120+60)/2
+        assert insights["efficiency"]["avg_close_duration_hours"] == 48.0  # 2880/60
+        assert len(raw_data) == 2
 
     def test_calculate_insights_empty(self, temp_output_dir):
         """测试计算洞察指标 - 空数据"""
@@ -296,13 +297,14 @@ class TestGitCodeIssueInsight:
             output_dir=temp_output_dir
         )
 
-        result = insight.calculate_insights([])
+        insights, raw_data = insight.calculate_insights([])
 
-        assert result["summary"]["total_issues"] == 0
-        assert result["summary"]["close_rate"] == 0
+        assert insights["summary"]["total_issues"] == 0
+        assert insights["summary"]["close_rate"] == 0
+        assert len(raw_data) == 0
 
-    def test_save_to_csv(self, temp_output_dir):
-        """测试保存 CSV 文件"""
+    def test_calculate_insights_daily_trend_closed_on_different_day(self, temp_output_dir):
+        """测试每日趋势 - Issue 在没有新 Issue 创建的日期被关闭"""
         insight = GitCodeIssueInsight(
             repo="test-repo",
             token="test_token",
@@ -311,35 +313,151 @@ class TestGitCodeIssueInsight:
             output_dir=temp_output_dir
         )
 
+        now = datetime.now(timezone.utc)
+        # Issue 创建于 day1，关闭于 day3（day3 没有新 Issue 创建）
         issues_data = [
             {
                 "issue_number": 1,
-                "title": "Test Issue",
-                "state": "opened",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-02T00:00:00Z",
-                "closed_at": "",
+                "title": "Bug 1",
+                "state": "closed",
+                "created_at": (now - timedelta(days=5)).isoformat(),  # day1: 创建
+                "updated_at": now.isoformat(),
+                "finished_at": (now - timedelta(days=3)).isoformat(),  # day3: 关闭（该天无新 Issue）
                 "creator": "user1",
                 "labels": "bug",
-                "comments_count": 2,
-                "assignees": "dev1",
+                "comments_count": 1,
+                "assignees": "",
                 "milestone": "",
                 "html_url": "https://example.com/issues/1",
                 "first_response_time": 60.0,
+                "close_duration": 2880.0  # 2 天
+            },
+            {
+                "issue_number": 2,
+                "title": "Feature 1",
+                "state": "open",
+                "created_at": (now - timedelta(days=5)).isoformat(),  # day1: 创建
+                "updated_at": now.isoformat(),
+                "finished_at": "",
+                "creator": "user2",
+                "labels": "enhancement",
+                "comments_count": 0,
+                "assignees": "",
+                "milestone": "",
+                "html_url": "https://example.com/issues/2",
+                "first_response_time": None,
                 "close_duration": None
             }
         ]
 
-        output_file = os.path.join(temp_output_dir, "test_issues.csv")
+        insights, raw_data = insight.calculate_insights(issues_data)
+
+        # 验证 daily_trend 包含关闭日期
+        daily_trend = insights["daily_trend"]
+        closed_dates = [date for date, counts in daily_trend.items() if counts["closed"] > 0]
+
+        assert len(closed_dates) == 1  # 应该有 1 个关闭日期
+        assert daily_trend[closed_dates[0]]["closed"] == 1  # 关闭计数应该正确
+
+    def test_generate_html_report(self, temp_output_dir):
+        """测试生成 HTML 报告"""
+        insight = GitCodeIssueInsight(
+            repo="test-repo",
+            token="test_token",
+            owner="test_org",
+            days=30,
+            output_dir=temp_output_dir
+        )
+
+        insights = {
+            "repo": "test_org/test-repo",
+            "analysis_period": "近 30 天",
+            "analysis_time": "2024-01-01 12:00:00",
+            "summary": {
+                "total_issues": 10,
+                "opened_issues": 5,
+                "closed_issues": 5,
+                "new_issues": 10,
+                "close_rate": 50.0
+            },
+            "efficiency": {
+                "avg_first_response_time_minutes": 60.0,
+                "avg_close_duration_hours": 24.0,
+                "timely_response_rate": 80.0,
+                "response_time_samples": 10,
+                "close_duration_samples": 5
+            },
+            "distribution": {
+                "by_label": {"bug": 5, "enhancement": 3},
+                "by_creator": {"user1": 4, "user2": 3}
+            },
+            "daily_trend": {
+                "2024-01-01": {"created": 3, "closed": 1},
+                "2024-01-02": {"created": 2, "closed": 2}
+            }
+        }
+
+        output_file = os.path.join(temp_output_dir, "test_report.html")
         with patch('builtins.print'):
-            insight.save_to_csv(issues_data, output_file)
+            insight.generate_html_report(insights, output_file)
 
         assert os.path.exists(output_file)
 
-        with open(output_file, 'r', encoding='utf-8-sig') as f:
+        with open(output_file, 'r', encoding='utf-8') as f:
             content = f.read()
-            assert "Test Issue" in content
-            assert "user1" in content
+            assert "Issue 洞察报告" in content
+            assert "test_org/test-repo" in content
+
+    def test_generate_markdown_report(self, temp_output_dir):
+        """测试生成 Markdown 报告"""
+        insight = GitCodeIssueInsight(
+            repo="test-repo",
+            token="test_token",
+            owner="test_org",
+            days=30,
+            output_dir=temp_output_dir
+        )
+
+        insights = {
+            "repo": "test_org/test-repo",
+            "analysis_period": "近 30 天",
+            "analysis_time": "2024-01-01 12:00:00",
+            "summary": {
+                "total_issues": 10,
+                "opened_issues": 5,
+                "closed_issues": 5,
+                "new_issues": 10,
+                "close_rate": 50.0
+            },
+            "efficiency": {
+                "avg_first_response_time_minutes": 60.0,
+                "avg_close_duration_hours": 24.0,
+                "timely_response_rate": 80.0,
+                "response_time_samples": 10,
+                "close_duration_samples": 5
+            },
+            "distribution": {
+                "by_label": {"bug": 5, "enhancement": 3},
+                "by_creator": {"user1": 4, "user2": 3}
+            },
+            "daily_trend": {
+                "2024-01-01": {"created": 3, "closed": 1},
+                "2024-01-02": {"created": 2, "closed": 2}
+            }
+        }
+
+        output_file = os.path.join(temp_output_dir, "test_report.md")
+        with patch('builtins.print'):
+            insight.generate_markdown_report(insights, output_file)
+
+        assert os.path.exists(output_file)
+
+        with open(output_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            assert "# Issue 洞察报告" in content
+            assert "test_org/test-repo" in content
+            assert "统计概览" in content
+            assert "效率指标" in content
 
 
 @pytest.mark.integration

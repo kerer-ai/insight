@@ -21,7 +21,7 @@ def sample_pr_list_data():
         {
             "number": 1,
             "title": "Feature: Add new feature",
-            "state": "opened",
+            "state": "open",
             "draft": False,
             "locked": False,
             "created_at": (now - timedelta(days=5)).isoformat(),
@@ -69,7 +69,7 @@ def sample_pr_list_data():
         {
             "number": 3,
             "title": "WIP: Draft PR",
-            "state": "opened",
+            "state": "open",
             "draft": True,
             "locked": False,
             "created_at": (now - timedelta(days=2)).isoformat(),
@@ -238,7 +238,7 @@ class TestGitCodePRInsight:
             result = insight.analyze_pr(sample_pr_list_data[0])
 
         assert result["pr_number"] == 1
-        assert result["state"] == "opened"
+        assert result["state"] == "open"
         assert result["creator"] == "user1"
         assert result["target_branch"] == "main"
         assert result["total_changes"] == 120  # 100 + 20
@@ -298,7 +298,7 @@ class TestGitCodePRInsight:
             {
                 "pr_number": 1,
                 "title": "Feature 1",
-                "state": "opened",
+                "state": "open",
                 "draft": False,
                 "locked": False,
                 "created_at": (now - timedelta(days=5)).isoformat(),
@@ -393,7 +393,7 @@ class TestGitCodePRInsight:
             {
                 "pr_number": 1,
                 "title": "Test PR",
-                "state": "opened",
+                "state": "open",
                 "draft": False,
                 "locked": False,
                 "created_at": "2024-01-01T00:00:00Z",

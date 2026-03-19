@@ -117,11 +117,12 @@ vim config/gitcode.json
 ### 2. 运行社区洞察
 
 ```bash
-# 获取社区数据
-gc-insight community
-
-# 生成可视化看板
+# 一键生成看板（自动采集数据并生成报告）
 gc-insight dashboard
+
+# 或分步执行
+gc-insight community  # 仅采集数据
+gc-insight dashboard  # 仅生成报告
 ```
 
 ### 3. 运行 Issue 洞察
@@ -201,7 +202,7 @@ gc-insight community --config /path/to/config.json --output /path/to/output/
 
 ### gc-insight dashboard
 
-生成可视化看板。
+生成可视化看板（自动检测数据，不存在则自动采集）。
 
 ```bash
 gc-insight dashboard [选项]
@@ -212,7 +213,19 @@ gc-insight dashboard [选项]
 | `--config` | `./config/gitcode.json` | 配置文件路径 |
 | `--output` | `./output/` | 输出目录 |
 
-**前提条件：** 需要先运行 `gc-insight community` 生成数据文件。
+**智能检测：**
+
+- 自动检测数据文件 `{owner}_community_stats_detailed.json` 是否存在
+- 如果不存在，自动执行 `community` 采集流程
+- 采集完成后自动生成看板
+
+**执行流程：**
+
+```
+检测数据文件
+  ├── 存在 → 直接生成看板
+  └── 不存在 → 自动采集数据 → 生成看板
+```
 
 **生成的看板包含：**
 
@@ -388,6 +401,7 @@ A: 检查网络连接，确认 Access Token 有效。如遇限流，等待几分
 - 支持 Issue 洞察功能
 - 支持生成 HTML 看板和 Markdown 报告
 - 命令行工具 `gc-insight`
+- `dashboard` 命令支持自动检测并采集数据
 
 ---
 

@@ -12,8 +12,6 @@ from .issue import GitCodeIssueInsight
 from .pr import GitCodePRInsight
 from .dashboard import generate_dashboard
 from .repo_stats import GitCodeRepoStats
-from .subscribers import GitCodeSubscribers
-from .languages import GitCodeLanguages
 from .report import GitCodeReport
 
 
@@ -91,31 +89,6 @@ def cmd_repo_stats(args):
     )
 
     stats.run()
-
-
-def cmd_subscribers(args):
-    """订阅用户命令"""
-    subscribers = GitCodeSubscribers(
-        repo=args.repo,
-        token=args.token,
-        owner=args.owner,
-        days=args.days,
-        output_dir=args.output
-    )
-
-    subscribers.run()
-
-
-def cmd_languages(args):
-    """编程语言统计命令"""
-    languages = GitCodeLanguages(
-        repo=args.repo,
-        token=args.token,
-        owner=args.owner,
-        output_dir=args.output
-    )
-
-    languages.run()
 
 
 def cmd_dashboard(args):
@@ -210,23 +183,6 @@ def main():
     repo_stats_parser.add_argument("--days", type=int, default=30, help="统计天数，默认 30")
     repo_stats_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
     repo_stats_parser.set_defaults(func=cmd_repo_stats)
-
-    # subscribers 子命令
-    subscribers_parser = subparsers.add_parser("subscribers", help="订阅用户统计")
-    subscribers_parser.add_argument("--repo", required=True, help="仓库名称（path）")
-    subscribers_parser.add_argument("--token", required=True, help="API 访问令牌")
-    subscribers_parser.add_argument("--owner", default=None, help="组织名，默认从配置文件读取")
-    subscribers_parser.add_argument("--days", type=int, default=30, help="统计天数，默认 30")
-    subscribers_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
-    subscribers_parser.set_defaults(func=cmd_subscribers)
-
-    # languages 子命令
-    languages_parser = subparsers.add_parser("languages", help="编程语言统计")
-    languages_parser.add_argument("--repo", required=True, help="仓库名称（path）")
-    languages_parser.add_argument("--token", required=True, help="API 访问令牌")
-    languages_parser.add_argument("--owner", default=None, help="组织名，默认从配置文件读取")
-    languages_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
-    languages_parser.set_defaults(func=cmd_languages)
 
     # dashboard 子命令
     dashboard_parser = subparsers.add_parser("dashboard", help="生成看板")

@@ -11,8 +11,6 @@ from .issue import GitCodeIssueInsight
 from .pr import GitCodePRInsight
 from .dashboard import generate_dashboard, generate_markdown_file
 from .repo_stats import GitCodeRepoStats
-from .subscribers import GitCodeSubscribers
-from .languages import GitCodeLanguages
 from .report import GitCodeReport
 
 __all__ = [
@@ -22,7 +20,5 @@ __all__ = [
     "generate_dashboard",
     "generate_markdown_file",
     "GitCodeRepoStats",
-    "GitCodeSubscribers",
-    "GitCodeLanguages",
     "GitCodeReport",
 ]

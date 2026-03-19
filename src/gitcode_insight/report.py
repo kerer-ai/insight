@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 GitCode 仓库综合报告模块
-整合 Issue、PR、仓库统计、订阅用户、编程语言数据生成综合报告
+整合 Issue、PR、仓库统计数据生成综合报告
 """
 
 import json
@@ -12,8 +12,6 @@ from typing import Dict, Optional
 from .issue import GitCodeIssueInsight
 from .pr import GitCodePRInsight
 from .repo_stats import GitCodeRepoStats
-from .subscribers import GitCodeSubscribers
-from .languages import GitCodeLanguages
 
 
 class GitCodeReport:
@@ -88,7 +86,7 @@ class GitCodeReport:
         return insight.run()
 
     def _check_or_collect_repo_stats(self) -> Dict:
-        """检查或采集仓库统计数据"""
+        """检查或采集仓库统计数据（包含下载、Fork、订阅用户、编程语言）"""
         json_file = os.path.join(self.output_dir, f"repo_stats_{self.owner}_{self.repo}_{self.days}d.json")
 
         if os.path.exists(json_file):
@@ -104,44 +102,10 @@ class GitCodeReport:
             days=self.days,
             output_dir=self.output_dir
         )
-        return stats.run()
-
-    def _check_or_collect_subscribers(self) -> Dict:
-        """检查或采集订阅用户数据"""
-        json_file = os.path.join(self.output_dir, f"subscribers_{self.owner}_{self.repo}_{self.days}d.json")
-
-        if os.path.exists(json_file):
-            print(f"发现现有订阅用户数据: {json_file}")
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-
-        print(f"未找到订阅用户数据，开始采集...")
-        subscribers = GitCodeSubscribers(
-            repo=self.repo,
-            token=self.token,
-            owner=self.owner,
-            days=self.days,
-            output_dir=self.output_dir
-        )
-        return subscribers.run()
-
-    def _check_or_collect_languages(self) -> Dict:
-        """检查或采集编程语言数据"""
-        json_file = os.path.join(self.output_dir, f"languages_{self.owner}_{self.repo}.json")
-
-        if os.path.exists(json_file):
-            print(f"发现现有编程语言数据: {json_file}")
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-
-        print(f"未找到编程语言数据，开始采集...")
-        languages = GitCodeLanguages(
-            repo=self.repo,
-            token=self.token,
-            owner=self.owner,
-            output_dir=self.output_dir
-        )
-        return languages.run()
+        stats.run()
+        # 重新读取保存的数据
+        with open(json_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
     def collect_all_data(self) -> Dict:
         """采集所有模块数据"""
@@ -149,15 +113,32 @@ class GitCodeReport:
         print(f"开始采集数据...")
         print(f"{'='*60}\n")
 
+        # 采集仓库统计数据（包含订阅用户和编程语言）
+        repo_stats_data = self._check_or_collect_repo_stats()
+
+        # 从 repo_stats 数据中提取统计信息
+        statistics = repo_stats_data.get("statistics", {})
+        download_stats = statistics.get("download_stats", {})
+        fork_stats = statistics.get("fork_stats", {})
+        subscriber_stats = statistics.get("subscriber_stats", {})
+        language_stats = statistics.get("language_stats", {})
+
         data = {
             "repo": f"{self.owner}/{self.repo}",
             "analysis_period": f"近 {self.days} 天",
             "analysis_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "issue": self._check_or_collect_issue(),
             "pr": self._check_or_collect_pr(),
-            "repo_stats": self._check_or_collect_repo_stats(),
-            "subscribers": self._check_or_collect_subscribers(),
-            "languages": self._check_or_collect_languages()
+            "repo_stats": {
+                "download_stats": download_stats,
+                "fork_stats": fork_stats
+            },
+            "subscribers": {
+                "subscriber_stats": subscriber_stats
+            },
+            "languages": {
+                "language_stats": language_stats
+            }
         }
 
         return data

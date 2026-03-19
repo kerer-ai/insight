@@ -119,42 +119,6 @@ class TestGitCodeReport:
             result = report._check_or_collect_repo_stats()
             assert result == existing_data
 
-    def test_check_or_collect_subscribers_existing_file(self):
-        """测试检测到现有订阅用户数据文件"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            existing_data = {'subscriber_stats': {'total': 100}}
-            sub_file = os.path.join(tmpdir, 'subscribers_test_owner_test_repo_30d.json')
-            with open(sub_file, 'w') as f:
-                json.dump(existing_data, f)
-
-            report = GitCodeReport(
-                repo='test_repo',
-                token='test_token',
-                owner='test_owner',
-                output_dir=tmpdir
-            )
-
-            result = report._check_or_collect_subscribers()
-            assert result == existing_data
-
-    def test_check_or_collect_languages_existing_file(self):
-        """测试检测到现有编程语言数据文件"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            existing_data = {'language_stats': {'primary_language': 'Python'}}
-            lang_file = os.path.join(tmpdir, 'languages_test_owner_test_repo.json')
-            with open(lang_file, 'w') as f:
-                json.dump(existing_data, f)
-
-            report = GitCodeReport(
-                repo='test_repo',
-                token='test_token',
-                owner='test_owner',
-                output_dir=tmpdir
-            )
-
-            result = report._check_or_collect_languages()
-            assert result == existing_data
-
     def test_collect_all_data(self):
         """测试采集所有数据"""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -168,15 +132,23 @@ class TestGitCodeReport:
             # Mock 各个采集方法
             mock_issue_data = {'summary': {'total_issues': 10}}
             mock_pr_data = {'summary': {'total_prs': 5}}
-            mock_repo_stats_data = {'download_stats': {'period_total': 100}}
-            mock_subscribers_data = {'subscriber_stats': {'total': 20}}
-            mock_languages_data = {'language_stats': {'primary_language': 'Python'}}
+            # repo_stats 现在包含订阅用户和编程语言数据
+            mock_repo_stats_data = {
+                'statistics': {
+                    'download_stats': {'period_total': 100},
+                    'fork_stats': {'total': 50},
+                    'subscriber_stats': {'total': 20},
+                    'language_stats': {'primary_language': 'Python'}
+                },
+                'raw_data': {
+                    'fork_list': [],
+                    'subscriber_list': []
+                }
+            }
 
             with patch.object(report, '_check_or_collect_issue', return_value=mock_issue_data), \
                  patch.object(report, '_check_or_collect_pr', return_value=mock_pr_data), \
-                 patch.object(report, '_check_or_collect_repo_stats', return_value=mock_repo_stats_data), \
-                 patch.object(report, '_check_or_collect_subscribers', return_value=mock_subscribers_data), \
-                 patch.object(report, '_check_or_collect_languages', return_value=mock_languages_data):
+                 patch.object(report, '_check_or_collect_repo_stats', return_value=mock_repo_stats_data):
 
                 data = report.collect_all_data()
 
@@ -184,9 +156,9 @@ class TestGitCodeReport:
                 assert data['analysis_period'] == '近 30 天'
                 assert data['issue'] == mock_issue_data
                 assert data['pr'] == mock_pr_data
-                assert data['repo_stats'] == mock_repo_stats_data
-                assert data['subscribers'] == mock_subscribers_data
-                assert data['languages'] == mock_languages_data
+                assert data['repo_stats'] == {'download_stats': {'period_total': 100}, 'fork_stats': {'total': 50}}
+                assert data['subscribers'] == {'subscriber_stats': {'total': 20}}
+                assert data['languages'] == {'language_stats': {'primary_language': 'Python'}}
 
     def test_save_to_json(self):
         """测试保存 JSON 数据"""

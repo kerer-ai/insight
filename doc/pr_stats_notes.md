@@ -167,6 +167,7 @@ if merged_at and created_at_str:
 | 指标 | 数据来源 | 计算方式 |
 |------|----------|----------|
 | 平均变更行数 | PR `added_lines` + `removed_lines` | `(added_lines + removed_lines)` 的平均值 |
+| 最大变更行数 | PR `added_lines` + `removed_lines` | `(added_lines + removed_lines)` 的最大值 |
 | 大 PR 数(>500行) | PR 变更行数 | `total_changes > 500` 的 PR 数量 |
 | 大 PR 占比 | 计算得出 | 大 PR 数 / 总数 * 100% |
 | 评论密度 | PR `notes` 字段 | 总评论数 / 总变更行数 |
@@ -176,6 +177,7 @@ if merged_at and created_at_str:
 ```python
 change_sizes = [p["total_changes"] for p in prs_data if p["total_changes"] > 0]
 avg_changes = sum(change_sizes) / len(change_sizes) if change_sizes else 0
+max_changes = max(change_sizes) if change_sizes else 0
 large_prs = [p for p in prs_data if p["total_changes"] > 500]
 
 total_notes = sum(p["notes_count"] for p in prs_data)
@@ -191,7 +193,6 @@ comment_density = total_notes / total_lines if total_lines > 0 else 0
 | 目标分支分布 | PR `target_branch` | 按目标分支分组统计 |
 | 标签分布 | PR `labels[].name` | 按标签分组统计 |
 | 评审者分布 | PR `assignees[].login` | 按负责人分组统计 |
-| 合并者分布 | PR `merged_by.login` | 按合并者分组统计（仅已合并 PR） |
 
 ### 5. 每日趋势
 
@@ -294,6 +295,7 @@ PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
     },
     "quality": {
       "avg_change_lines": 4520.98,
+      "max_change_lines": 125000,
       "large_pr_count": 25,
       "large_pr_rate": 13.23,
       "comment_density": 0.0065
@@ -302,8 +304,7 @@ PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
       "by_creator": {"gaojuxin09": 70, ...},
       "by_target_branch": {"OLK-6.6": 163, ...},
       "by_label": {"sig/Kernel": 188, ...},
-      "by_reviewer": {"zhengzengkai": 188, ...},
-      "by_merger": {"openeuler-ci-bot": 40}
+      "by_reviewer": {"zhengzengkai": 188, ...}
     },
     "daily_trend": {
       "2026-03-12": {"created": 30, "merged": 5, "closed": 10},
@@ -329,9 +330,10 @@ HTML 报告包含以下部分：
 
 1. **概览统计**：总 PR 数、打开中、已合并、已关闭、合并率、冲突率
 2. **效率指标**：平均首次评审时间、平均合并耗时、最短合并耗时、最长合并耗时、24h 评审率
-3. **质量指标**：平均变更行数、大 PR 数、大 PR 占比、评论密度
+3. **质量指标**：平均变更行数、最大变更行数、大 PR 数、大 PR 占比、评论密度
 4. **趋势图表**：每日 PR 趋势、创建者分布、目标分支分布、代码变更规模分布
-5. **分布统计**：创建者、目标分支、标签、合并者分布列表
+5. **分布统计**：创建者、目标分支、标签分布列表
+6. **PR 列表**：所有 PR 基础信息表格，包含 PR 编号、标题、状态、创建者、目标分支、变更行数、创建时间
 
 ### Markdown 报告内容
 

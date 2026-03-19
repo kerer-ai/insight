@@ -231,6 +231,7 @@ class GitCodePRInsight:
         # 代码变更统计
         change_sizes = [p["total_changes"] for p in prs_data if p["total_changes"] > 0]
         avg_changes = sum(change_sizes) / len(change_sizes) if change_sizes else 0
+        max_changes = max(change_sizes) if change_sizes else 0
         large_prs = [p for p in prs_data if p["total_changes"] > 500]
 
         # 评论密度
@@ -275,13 +276,6 @@ class GitCodePRInsight:
             for assignee in pr["assignees"].split(","):
                 if assignee:
                     reviewer_dist[assignee] = reviewer_dist.get(assignee, 0) + 1
-
-        # 合并者分布
-        merger_dist = {}
-        for pr in prs_data:
-            merger = pr["merged_by"]
-            if merger:
-                merger_dist[merger] = merger_dist.get(merger, 0) + 1
 
         # 每日趋势
         daily_trend = {}
@@ -342,6 +336,7 @@ class GitCodePRInsight:
             },
             "quality": {
                 "avg_change_lines": round(avg_changes, 2),
+                "max_change_lines": max_changes,
                 "large_pr_count": len(large_prs),
                 "large_pr_rate": round(len(large_prs) / total * 100, 2) if total > 0 else 0,
                 "comment_density": round(comment_density, 4)
@@ -350,8 +345,7 @@ class GitCodePRInsight:
                 "by_creator": dict(sorted(creator_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
                 "by_target_branch": dict(sorted(branch_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
                 "by_label": dict(sorted(label_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
-                "by_reviewer": dict(sorted(reviewer_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
-                "by_merger": dict(sorted(merger_dist.items(), key=lambda x: x[1], reverse=True)[:10])
+                "by_reviewer": dict(sorted(reviewer_dist.items(), key=lambda x: x[1], reverse=True)[:10])
             },
             "daily_trend": dict(sorted(daily_trend.items()))
         }, prs_data
@@ -480,6 +474,10 @@ class GitCodePRInsight:
                 <div class="stat-label">平均变更行数</div>
             </div>
             <div class="stat-card">
+                <div class="stat-value">{quality["max_change_lines"]}</div>
+                <div class="stat-label">最大变更行数</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-value">{quality["large_pr_count"]}</div>
                 <div class="stat-label">大PR数(>500行)</div>
             </div>
@@ -534,21 +532,39 @@ class GitCodePRInsight:
         html_content += f'''            </div>
         </div>
 
-        <div class="charts-grid">
-            <div class="dist-section">
-                <div class="chart-title">标签分布 Top 10</div>
+        <h2>PR 列表</h2>
+        <div class="dist-section">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">PR</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">标题</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #e2e8f0;">状态</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">创建者</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">目标分支</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">变更行数</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #e2e8f0;">创建时间</th>
+                    </tr>
+                </thead>
+                <tbody>
 '''
-        for label, count in distribution["by_label"].items():
-            html_content += f'                <div class="dist-item"><span>{label}</span><span>{count}</span></div>\n'
-
-        html_content += f'''            </div>
-            <div class="dist-section">
-                <div class="chart-title">合并者分布</div>
+        # PR 列表按创建时间倒序排列（API 返回顺序）
+        for pr in prs_data:
+            state_display = {"open": "打开", "merged": "已合并", "closed": "已关闭"}.get(pr["state"], pr["state"])
+            state_color = {"open": "#3b82f6", "merged": "#10b981", "closed": "#ef4444"}.get(pr["state"], "#64748b")
+            html_content += f'''                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><a href="{pr["html_url"]}" target="_blank">#{pr["pr_number"]}</a></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{pr["title"][:50]}{"..." if len(pr["title"]) > 50 else ""}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;"><span style="color: {state_color}; font-weight: 500;">{state_display}</span></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">{pr["creator"]}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">{pr["target_branch"]}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">{pr["total_changes"]}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">{pr["created_at"][:10] if pr["created_at"] else "-"}</td>
+                    </tr>
 '''
-        for merger, count in distribution["by_merger"].items():
-            html_content += f'                <div class="dist-item"><span>{merger}</span><span>{count}</span></div>\n'
 
-        html_content += f'''            </div>
+        html_content += f'''                </tbody>
+            </table>
         </div>
 
         <div class="footer">
@@ -654,7 +670,7 @@ class GitCodePRInsight:
 
         print(f"HTML 报告: {output_file}")
 
-    def generate_markdown_report(self, insights: Dict, output_file: str):
+    def generate_markdown_report(self, insights: Dict, prs_data: List[Dict], output_file: str):
         """生成 Markdown 报告（统计数据总结）"""
         summary = insights["summary"]
         efficiency = insights["efficiency"]
@@ -694,6 +710,7 @@ class GitCodePRInsight:
 | 指标 | 数值 |
 |------|------|
 | 平均变更行数 | {quality["avg_change_lines"]:.0f} |
+| 最大变更行数 | {quality["max_change_lines"]} |
 | 大PR数(>500行) | {quality["large_pr_count"]} |
 | 大PR占比 | {quality["large_pr_rate"]}% |
 | 评论密度 | {quality["comment_density"]:.4f} |
@@ -734,13 +751,16 @@ class GitCodePRInsight:
             md_content += f"| {label} | {count} |\n"
 
         md_content += '''
-## 合并者分布
+## PR 列表
 
-| 合并者 | 数量 |
-|------|------|
+| PR | 标题 | 状态 | 创建者 | 目标分支 | 变更行数 | 创建时间 |
+|------|------|------|------|------|------|------|
 '''
-        for merger, count in distribution["by_merger"].items():
-            md_content += f"| {merger} | {count} |\n"
+        # PR 列表按创建时间倒序排列
+        for pr in prs_data:
+            state_display = {"open": "打开", "merged": "已合并", "closed": "已关闭"}.get(pr["state"], pr["state"])
+            title_short = pr["title"][:40] + "..." if len(pr["title"]) > 40 else pr["title"]
+            md_content += f"| [#{pr['pr_number']}]({pr['html_url']}) | {title_short} | {state_display} | {pr['creator']} | {pr['target_branch']} | {pr['total_changes']} | {pr['created_at'][:10] if pr['created_at'] else '-'} |\n"
 
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(md_content)
@@ -791,7 +811,7 @@ class GitCodePRInsight:
 
         # 生成 Markdown 报告
         md_file = os.path.join(self.output_dir, f"pr_insight_{self.repo}_{self.days}d.md")
-        self.generate_markdown_report(insights, md_file)
+        self.generate_markdown_report(insights, prs_data, md_file)
 
         # 打印摘要
         print(f"\n{'='*60}")
@@ -806,6 +826,7 @@ class GitCodePRInsight:
         print(f"最短合并耗时: {insights['efficiency']['min_merge_duration_hours']:.1f} 小时")
         print(f"最长合并耗时: {insights['efficiency']['max_merge_duration_hours']:.1f} 小时")
         print(f"平均变更行数: {insights['quality']['avg_change_lines']:.0f}")
+        print(f"最大变更行数: {insights['quality']['max_change_lines']}")
         print(f"\n输出文件:")
         print(f"- JSON 数据: {json_file}")
         print(f"- HTML 报告: {html_file}")

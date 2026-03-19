@@ -363,6 +363,7 @@ class TestGitCodePRInsight:
         assert result["summary"]["merge_rate"] == 50.0
         assert result["efficiency"]["avg_first_review_time_minutes"] == 90.0
         assert result["quality"]["avg_change_lines"] == 90.0
+        assert result["quality"]["max_change_lines"] == 120
 
     def test_calculate_insights_empty(self, temp_output_dir):
         """测试计算洞察指标 - 空数据"""
@@ -410,6 +411,7 @@ class TestGitCodePRInsight:
             },
             "quality": {
                 "avg_change_lines": 150.0,
+                "max_change_lines": 500,
                 "large_pr_count": 2,
                 "large_pr_rate": 20.0,
                 "comment_density": 0.05
@@ -418,8 +420,7 @@ class TestGitCodePRInsight:
                 "by_creator": {"user1": 5, "user2": 3},
                 "by_target_branch": {"main": 8, "develop": 2},
                 "by_label": {"enhancement": 4, "bug": 3},
-                "by_reviewer": {"reviewer1": 5},
-                "by_merger": {"merger1": 6}
+                "by_reviewer": {"reviewer1": 5}
             },
             "daily_trend": {
                 "2024-01-01": {"created": 2, "merged": 1, "closed": 0},
@@ -428,8 +429,26 @@ class TestGitCodePRInsight:
         }
 
         prs_data = [
-            {"total_changes": 100},
-            {"total_changes": 200}
+            {
+                "pr_number": 1,
+                "title": "Test PR 1",
+                "state": "open",
+                "creator": "user1",
+                "target_branch": "main",
+                "total_changes": 100,
+                "created_at": "2024-01-01T10:00:00Z",
+                "html_url": "https://example.com/pull/1"
+            },
+            {
+                "pr_number": 2,
+                "title": "Test PR 2",
+                "state": "merged",
+                "creator": "user2",
+                "target_branch": "main",
+                "total_changes": 200,
+                "created_at": "2024-01-02T10:00:00Z",
+                "html_url": "https://example.com/pull/2"
+            }
         ]
 
         output_file = os.path.join(temp_output_dir, "test_report.html")

@@ -5,10 +5,23 @@ GitCode Insight 命令行入口
 
 import argparse
 import os
+import json
 
 from .community import GitCodeCommunityStats
 from .issue import GitCodeIssueInsight
 from .dashboard import generate_dashboard
+
+
+def get_config_owner(config_file):
+    """从配置文件获取 owner"""
+    if config_file is None:
+        config_file = os.path.join(os.getcwd(), "config", "gitcode.json")
+
+    if os.path.exists(config_file):
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            return config.get("owner", "")
+    return ""
 
 
 def cmd_community(args):
@@ -49,8 +62,40 @@ def cmd_issue(args):
 
 
 def cmd_dashboard(args):
-    """生成看板命令"""
-    generate_dashboard(config_file=args.config, output_dir=args.output)
+    """生成看板命令（自动检测数据是否存在，不存在则先采集）"""
+    config_file = args.config
+    output_dir = args.output
+
+    # 设置默认路径
+    if config_file is None:
+        config_file = os.path.join(os.getcwd(), "config", "gitcode.json")
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), "output")
+
+    # 获取 owner
+    owner = get_config_owner(config_file)
+    if not owner:
+        print("错误: 无法从配置文件获取 owner")
+        return
+
+    # 检测数据文件是否存在
+    json_file = os.path.join(output_dir, f"{owner}_community_stats_detailed.json")
+
+    if not os.path.exists(json_file):
+        print(f"数据文件不存在: {json_file}")
+        print("开始自动采集数据...\n")
+
+        # 自动运行采集
+        stats_crawler = GitCodeCommunityStats(config_file=config_file, output_dir=output_dir)
+        stats = stats_crawler.crawl_community_stats()
+        stats_crawler.generate_report(stats)
+        stats_crawler.save_to_csv(stats)
+        stats_crawler.save_to_json(stats)
+
+        print("\n数据采集完成！\n")
+
+    # 生成看板
+    generate_dashboard(config_file=config_file, output_dir=output_dir)
 
 
 def main():

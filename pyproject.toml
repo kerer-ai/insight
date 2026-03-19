@@ -27,6 +27,12 @@ dependencies = [
     "requests>=2.25.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
 [project.scripts]
 gc-insight = "gitcode_insight.cli:main"
 
@@ -36,3 +42,12 @@ Repository = "https://github.com/example/gitcode-insight"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "integration: marks tests that require real API access (deselect with '-m \"not integration\"')",
+]

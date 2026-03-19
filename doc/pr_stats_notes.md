@@ -108,39 +108,147 @@ for pr in merged:
 
 ## 统计指标计算
 
-### 核心指标
+### 1. 概览统计
 
-| 指标 | 计算方式 | 数据来源 |
+| 指标 | 数据来源 | 计算方式 |
 |------|----------|----------|
-| 总 PR 数 | 时间范围内 PR 总数 | API 返回 |
-| 打开中 PR | state=open 的数量 | API state 字段 |
-| 已合并 PR | merged_at 非空的数量 | API merged_at 字段 |
-| 已关闭 PR | state=closed 且 merged_at 为空 | API state + merged_at |
-| 合并率 | 已合并 / 总数 * 100% | 计算得出 |
-| 平均首次评审时间 | 首条评论时间 - 创建时间 | 评论 API |
-| 平均合并耗时 | merged_at - created_at | API merged_at |
-| 24h 评审率 | 24 小时内评审的 PR 占比 | 评论数据计算 |
+| 总 PR 数 | API 返回的 PR 列表 | 时间范围内过滤后的 PR 总数 |
+| 打开中 | PR `state` 字段 | `state == "open"` 的 PR 数量 |
+| 已合并 | PR `merged_at` 字段 | `merged_at` 非空的 PR 数量（非 `state == "merged"`） |
+| 已关闭(未合并) | PR `state` + `merged_at` | `state == "closed" and not merged_at` 的 PR 数量 |
+| 草稿 PR | PR `draft` 字段 | `draft == True` 的 PR 数量 |
+| 合并率 | 计算得出 | `已合并 / 总数 * 100%` |
+| 草稿率 | 计算得出 | `草稿 PR / 总数 * 100%` |
+| 冲突率 | PR `mergeable` 字段 | `mergeable == False` 的 PR 占比 |
 
-### 首次评审时间计算
+**代码位置**：`pr.py:246-254`
 
 ```python
-def analyze_pr(self, pr):
-    comments = self.get_pr_comments(pr["number"])
-
-    first_review_time = None
-    if comments:
-        creator_id = pr.get("user", {}).get("id")
-        for comment in comments:
-            commenter_id = comment.get("user", {}).get("id")
-            if commenter_id != creator_id:  # 排除创建者自己的评论
-                try:
-                    comment_time = datetime.fromisoformat(comment["created_at"].replace("Z", "+00:00"))
-                    created_time = datetime.fromisoformat(pr["created_at"].replace("Z", "+00:00"))
-                    first_review_time = (comment_time - created_time).total_seconds() / 60
-                except:
-                    pass
-                break
+opened = [p for p in prs_data if p["state"] == "open"]
+merged = [p for p in prs_data if p["merged_at"]]
+closed_not_merged = [p for p in prs_data if p["state"] == "closed" and not p["merged_at"]]
+drafts = [p for p in prs_data if p["draft"]]
+conflicts = [p for p in prs_data if p["mergeable"] is False]
 ```
+
+### 2. 效率指标
+
+| 指标 | 数据来源 | 计算方式 |
+|------|----------|----------|
+| 平均首次评审(分钟) | PR 评论 API | 非创建者的首条评论时间 - PR 创建时间，取平均值 |
+| 平均合并耗时(小时) | PR `merged_at` + `created_at` | `merged_at - created_at`，已合并 PR 的平均值，转换为小时 |
+| 平均打开天数 | PR `created_at` + 当前时间 | 仅针对 `state == "open"` 的 PR，当前时间 - 创建时间 |
+| 24h 评审率 | 计算得出 | 首次评审时间 ≤ 1440 分钟（24小时）的 PR 占比 |
+
+**首次评审时间计算**（`pr.py:129-143`）：
+
+```python
+comments = self.get_pr_comments(pr_number)
+if comments:
+    creator_id = pr.get("user", {}).get("id")
+    for comment in comments:
+        commenter_id = comment.get("user", {}).get("id")
+        if commenter_id != creator_id:  # 排除创建者自己的评论
+            comment_time = datetime.fromisoformat(comment["created_at"])
+            created_time = datetime.fromisoformat(pr["created_at"])
+            first_review_time = (comment_time - created_time).total_seconds() / 60
+            break
+```
+
+**合并耗时计算**（`pr.py:146-153`）：
+
+```python
+if merged_at and created_at_str:
+    merged_time = datetime.fromisoformat(merged_at)
+    created_time = datetime.fromisoformat(created_at_str)
+    merge_duration = (merged_time - created_time).total_seconds() / 60
+```
+
+### 3. 质量指标
+
+| 指标 | 数据来源 | 计算方式 |
+|------|----------|----------|
+| 平均变更行数 | PR `added_lines` + `removed_lines` | `(added_lines + removed_lines)` 的平均值 |
+| 大 PR 数(>500行) | PR 变更行数 | `total_changes > 500` 的 PR 数量 |
+| 大 PR 占比 | 计算得出 | 大 PR 数 / 总数 * 100% |
+| 评论密度 | PR `notes` 字段 | 总评论数 / 总变更行数 |
+| CI 成功率 | PR `pipeline_status` 字段 | `pipeline_status == "success"` 的 PR 占比 |
+
+**代码位置**：`pr.py:256-264`
+
+```python
+change_sizes = [p["total_changes"] for p in prs_data if p["total_changes"] > 0]
+avg_changes = sum(change_sizes) / len(change_sizes) if change_sizes else 0
+large_prs = [p for p in prs_data if p["total_changes"] > 500]
+
+total_notes = sum(p["notes_count"] for p in prs_data)
+total_lines = sum(p["total_changes"] for p in prs_data)
+comment_density = total_notes / total_lines if total_lines > 0 else 0
+```
+
+### 4. 分布统计
+
+| 指标 | 数据来源 | 计算方式 |
+|------|----------|----------|
+| 创建者分布 Top 10 | PR `user.login` | 按创建者分组统计 PR 数量，取前 10 |
+| 目标分支分布 | PR `target_branch` | 按目标分支分组统计 |
+| 标签分布 | PR `labels[].name` | 按标签分组统计 |
+| 评审者分布 | PR `assignees[].login` | 按负责人分组统计 |
+| 合并者分布 | PR `merged_by.login` | 按合并者分组统计（仅已合并 PR） |
+
+### 5. 每日趋势
+
+| 指标 | 数据来源 | 计算方式 |
+|------|----------|----------|
+| 创建数 | PR `created_at` | 按日期分组统计 PR 创建数 |
+| 合并数 | PR `merged_at` | 按日期分组统计 PR 合并数 |
+| 关闭数 | PR `closed_at` | 按日期分组统计 PR 关闭数（未合并） |
+
+**代码位置**：`pr.py:320-348`
+
+```python
+# 创建趋势
+for pr in prs_data:
+    created = datetime.fromisoformat(pr["created_at"].replace("Z", "+00:00"))
+    date_str = created.strftime("%Y-%m-%d")
+    if date_str not in daily_trend:
+        daily_trend[date_str] = {"created": 0, "merged": 0, "closed": 0}
+    daily_trend[date_str]["created"] += 1
+
+# 合并趋势
+for pr in merged:
+    merged_date = datetime.fromisoformat(pr["merged_at"].replace("Z", "+00:00"))
+    date_str = merged_date.strftime("%Y-%m-%d")
+    if date_str not in daily_trend:
+        daily_trend[date_str] = {"created": 0, "merged": 0, "closed": 0}
+    daily_trend[date_str]["merged"] += 1
+```
+
+### 6. 数据来源总结
+
+| API 接口 | 用途 |
+|----------|------|
+| `GET /repos/{owner}/{repo}/pulls` | 获取 PR 列表及基础信息 |
+| `GET /repos/{owner}/{repo}/pulls/{number}/comments` | 获取 PR 评论，计算首次评审时间 |
+
+**API 返回的关键字段**：
+
+| 字段 | 用途 |
+|------|------|
+| `state` | PR 状态（open/merged/closed） |
+| `merged_at` | 合并时间，判断是否已合并 |
+| `closed_at` | 关闭时间 |
+| `created_at` | 创建时间 |
+| `draft` | 是否草稿 |
+| `mergeable` | 是否可合并（检测冲突） |
+| `added_lines` / `removed_lines` | 代码变更行数 |
+| `notes` | 评论数 |
+| `pipeline_status` | CI 状态 |
+| `user.login` | 创建者 |
+| `merged_by.login` | 合并者 |
+| `assignees` | 负责人列表 |
+| `labels` | 标签列表 |
+| `target_branch` | 目标分支 |
 
 ## API 限流处理
 

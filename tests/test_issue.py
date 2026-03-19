@@ -377,7 +377,6 @@ class TestGitCodeIssueInsight:
                 "total_issues": 10,
                 "opened_issues": 5,
                 "closed_issues": 5,
-                "new_issues": 10,
                 "close_rate": 50.0
             },
             "efficiency": {
@@ -426,7 +425,6 @@ class TestGitCodeIssueInsight:
                 "total_issues": 10,
                 "opened_issues": 5,
                 "closed_issues": 5,
-                "new_issues": 10,
                 "close_rate": 50.0
             },
             "efficiency": {

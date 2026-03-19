@@ -295,10 +295,6 @@ class GitCodeReport:
                     <div class="stat-label">总 Issue 数</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{issue_summary.get("new_issues", 0)}</div>
-                    <div class="stat-label">新增 Issue</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-value">{issue_summary.get("opened_issues", 0)}</div>
                     <div class="stat-label">未关闭</div>
                 </div>
@@ -586,7 +582,6 @@ class GitCodeReport:
 | 指标 | 数值 |
 |------|------|
 | 总 Issue 数 | {issue_summary.get("total_issues", 0)} |
-| 新增 Issue | {issue_summary.get("new_issues", 0)} |
 | 未关闭 | {issue_summary.get("opened_issues", 0)} |
 | 已关闭 | {issue_summary.get("closed_issues", 0)} |
 | 关闭率 | {issue_summary.get("close_rate", 0)}% |

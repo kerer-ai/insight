@@ -278,7 +278,7 @@ class TestGitCodeReport:
                 'analysis_time': '2024-01-01 12:00:00',
                 'analysis_period': '近 30 天',
                 'issue': {
-                    'summary': {'total_issues': 10, 'close_rate': 80, 'new_issues': 8, 'opened_issues': 2, 'closed_issues': 8},
+                    'summary': {'total_issues': 10, 'close_rate': 80, 'opened_issues': 2, 'closed_issues': 8},
                     'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90}
                 },
                 'pr': {

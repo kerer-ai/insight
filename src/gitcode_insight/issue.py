@@ -237,9 +237,6 @@ class GitCodeIssueInsight:
         opened = [i for i in issues_data if i["state"] == "open"]
         closed = [i for i in issues_data if i["state"] == "closed"]
 
-        # 新增 Issue
-        new_issues = [i for i in issues_data if self._is_within_range(i["created_at"])]
-
         # 响应时间统计
         response_times = [i["first_response_time"] for i in issues_data if i["first_response_time"]]
         avg_response_time = sum(response_times) / len(response_times) if response_times else 0
@@ -296,7 +293,6 @@ class GitCodeIssueInsight:
                 "total_issues": total,
                 "opened_issues": len(opened),
                 "closed_issues": len(closed),
-                "new_issues": len(new_issues),
                 "close_rate": round(len(closed) / total * 100, 2) if total > 0 else 0
             },
             "efficiency": {
@@ -367,10 +363,6 @@ class GitCodeIssueInsight:
             <div class="stat-card">
                 <div class="stat-value">{summary["total_issues"]}</div>
                 <div class="stat-label">总 Issue 数</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{summary["new_issues"]}</div>
-                <div class="stat-label">新增 Issue</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{summary["opened_issues"]}</div>
@@ -509,7 +501,6 @@ class GitCodeIssueInsight:
 | 指标 | 数值 |
 |------|------|
 | 总 Issue 数 | {summary["total_issues"]} |
-| 新增 Issue | {summary["new_issues"]} |
 | 未关闭 | {summary["opened_issues"]} |
 | 已关闭 | {summary["closed_issues"]} |
 | 关闭率 | {summary["close_rate"]}% |
@@ -605,7 +596,6 @@ class GitCodeIssueInsight:
         print(f"分析完成!")
         print(f"{'='*60}")
         print(f"总 Issue 数: {insights['summary']['total_issues']}")
-        print(f"新增 Issue: {insights['summary']['new_issues']}")
         print(f"未关闭: {insights['summary']['opened_issues']}")
         print(f"已关闭: {insights['summary']['closed_issues']}")
         print(f"关闭率: {insights['summary']['close_rate']}%")

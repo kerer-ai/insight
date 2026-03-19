@@ -130,8 +130,7 @@ class GitCodeIssueInsight:
         issue_number = issue.get("number", "")
         created_at_str = issue.get("created_at", "")
 
-        # 获取事件和评论
-        events = self.get_issue_events(issue_number)
+        # 获取评论
         comments = self.get_issue_comments(issue_number)
 
         # 计算首次响应时间

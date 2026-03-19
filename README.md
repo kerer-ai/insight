@@ -427,7 +427,7 @@ PR 洞察分析: openeuler/kernel
 
 ### gc-insight repo-stats
 
-获取仓库综合统计数据（下载统计 + Fork 列表）。
+获取仓库综合统计数据（下载统计 + Fork 人员分析），并生成 JSON/HTML/Markdown 报告。
 
 ```bash
 gc-insight repo-stats --repo REPO --token TOKEN [选项]
@@ -461,13 +461,18 @@ gc-insight repo-stats --repo kernel --token gct_xxxx --owner openeuler --days 30
 - 历史累计下载量: 162,547
 - 日均下载量: 2038.07
 - 下载峰值日: 2026-03-06 (5257 次)
+- 活跃下载天数: 28
+- 下载趋势: up
 
 【Fork 统计】
 - Fork 总数: 244
 - 近 30 天新增 Fork: 61
+- Fork 人员数: 232
 - 最新 Fork: gcw_6G9b00H9/kernel (2026-03-19)
 
 数据已保存到: output/repo_stats_openeuler_kernel_30d.json
+HTML 报告: output/repo_stats_openeuler_kernel_30d.html
+Markdown 报告: output/repo_stats_openeuler_kernel_30d.md
 ============================================================
 ```
 
@@ -652,7 +657,9 @@ gc-insight report --repo kernel --token gct_xxxx --owner openeuler --days 7
 
 | 文件名                                      | 格式   | 说明             |
 | ---------------------------------------- | ---- | -------------- |
-| `repo_stats_{owner}_{repo}_{days}d.json` | JSON | 下载统计 + Fork 列表 |
+| `repo_stats_{owner}_{repo}_{days}d.json` | JSON | 下载统计 + Fork 人员详细数据 |
+| `repo_stats_{owner}_{repo}_{days}d.html` | HTML | 仓库统计可视化报告 |
+| `repo_stats_{owner}_{repo}_{days}d.md` | Markdown | 仓库统计 Markdown 报告 |
 
 ### 订阅用户统计输出
 

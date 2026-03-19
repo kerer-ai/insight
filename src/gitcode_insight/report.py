@@ -203,6 +203,21 @@ class GitCodeReport:
 
         lang_names = list(language_stats.get("languages", {}).keys())[:10]
         lang_values = list(language_stats.get("languages", {}).values())[:10]
+        top_download_days = download_stats.get("top_days", [])
+        top_fork_users = fork_stats.get("top_fork_users", [])
+
+        top_download_rows = "".join(
+            [
+                f"<tr><td>{item.get('date', '-')}</td><td>{item.get('count', 0)}</td><td>{item.get('total', 0):,}</td></tr>"
+                for item in top_download_days[:10]
+            ]
+        )
+        top_fork_user_rows = "".join(
+            [
+                f"<tr><td>{item.get('owner', '-')}</td><td>{item.get('count', 0)}</td><td>{item.get('latest_created_at', '-')[:19]}</td></tr>"
+                for item in top_fork_users[:10]
+            ]
+        )
 
         html_content = f'''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -378,6 +393,32 @@ class GitCodeReport:
                         <div class="stat-value">{fork_stats.get("new_in_period", 0)}</div>
                         <div class="stat-label">新增 Fork</div>
                     </div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">下载峰值 Top 10</div>
+                    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background:#eef2ff;">
+                                <th style="padding:8px; border:1px solid #e2e8f0;">日期</th>
+                                <th style="padding:8px; border:1px solid #e2e8f0;">当日下载</th>
+                                <th style="padding:8px; border:1px solid #e2e8f0;">截止当日累计</th>
+                            </tr>
+                        </thead>
+                        <tbody>{top_download_rows}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box" style="margin-top: 15px;">
+                    <div class="chart-title">Fork 人员 Top 10</div>
+                    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background:#eef2ff;">
+                                <th style="padding:8px; border:1px solid #e2e8f0;">用户</th>
+                                <th style="padding:8px; border:1px solid #e2e8f0;">Fork 数</th>
+                                <th style="padding:8px; border:1px solid #e2e8f0;">最新 Fork 时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>{top_fork_user_rows}</tbody>
+                    </table>
                 </div>
             </div>
 
@@ -582,6 +623,8 @@ class GitCodeReport:
 | 期间下载量 | {download_stats.get("period_total", 0)} |
 | 历史总下载 | {download_stats.get("history_total", 0):,} |
 | 日均下载 | {download_stats.get("daily_average", 0):.1f} |
+| 活跃下载天数 | {download_stats.get("active_days", 0)} |
+| 活跃下载占比 | {download_stats.get("active_days_rate", 0)}% |
 
 ### Fork 统计
 
@@ -589,8 +632,31 @@ class GitCodeReport:
 |------|------|
 | Fork 总数 | {fork_stats.get("total", 0)} |
 | 近 {self.days} 天新增 Fork | {fork_stats.get("new_in_period", 0)} |
+| Fork 人员数 | {fork_stats.get("unique_fork_owners", 0)} |
 
+#### 下载峰值 Top 10
+
+| 日期 | 当日下载 | 截止当日累计 |
+|------|----------|--------------|
+
+
+        for item in download_stats.get("top_days", [])[:10]:
+            md_content += f"| {item.get('date', '-')} | {item.get('count', 0)} | {item.get('total', 0):,} |\n"
+
+        md_content += '''
+
+#### Fork 人员 Top 10
+
+| 用户 | Fork 数 | 最新 Fork 时间 |
+|------|--------|----------------|
+'''
+
+        for item in fork_stats.get("top_fork_users", [])[:10]:
+            md_content += f"| {item.get('owner', '-')} | {item.get('count', 0)} | {item.get('latest_created_at', '-')[:19]} |\n"
+
+        md_content += f'''
 ## 社区活跃
+
 
 ### 订阅用户
 

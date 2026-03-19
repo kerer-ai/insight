@@ -46,6 +46,51 @@ class TestGitCodeCommunityStats:
 
         assert result == mock_projects
 
+    def test_get_all_community_projects_with_whitelist(self, temp_config_file, temp_output_dir):
+        """测试仓库白名单过滤"""
+        with open(temp_config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        config["repo_whitelist"] = ["project1"]
+        config["repo_blacklist"] = ["project1", "project2"]
+        with open(temp_config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f)
+
+        stats = GitCodeCommunityStats(config_file=temp_config_file, output_dir=temp_output_dir)
+        projects = [
+            {"name": "project1", "path": "project1", "html_url": "https://gitcode.com/test_org/project1"},
+            {"name": "project2", "path": "project2", "html_url": "https://gitcode.com/test_org/project2"}
+        ]
+
+        with patch.object(stats, 'get_community_projects') as mock_get:
+            mock_get.side_effect = [projects, []]
+            with patch('gitcode_insight.community.time.sleep'):
+                result = stats.get_all_community_projects()
+
+        assert len(result) == 1
+        assert result[0]["path"] == "project1"
+
+    def test_get_all_community_projects_with_blacklist(self, temp_config_file, temp_output_dir):
+        """测试仓库黑名单过滤"""
+        with open(temp_config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        config["repo_blacklist"] = ["project2"]
+        with open(temp_config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f)
+
+        stats = GitCodeCommunityStats(config_file=temp_config_file, output_dir=temp_output_dir)
+        projects = [
+            {"name": "project1", "path": "project1", "html_url": "https://gitcode.com/test_org/project1"},
+            {"name": "project2", "path": "project2", "html_url": "https://gitcode.com/test_org/project2"}
+        ]
+
+        with patch.object(stats, 'get_community_projects') as mock_get:
+            mock_get.side_effect = [projects, []]
+            with patch('gitcode_insight.community.time.sleep'):
+                result = stats.get_all_community_projects()
+
+        assert len(result) == 1
+        assert result[0]["path"] == "project1"
+
     def test_get_project_contributors(self, temp_config_file, temp_output_dir, sample_contributors_data):
         """测试获取贡献者列表"""
         stats = GitCodeCommunityStats(config_file=temp_config_file, output_dir=temp_output_dir)

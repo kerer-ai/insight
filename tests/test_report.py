@@ -255,7 +255,7 @@ class TestGitCodeReport:
 
             assert os.path.exists(html_file)
 
-            with open(html_file, 'r') as f:
+            with open(html_file, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             assert '仓库综合报告' in content
@@ -303,7 +303,7 @@ class TestGitCodeReport:
 
             assert os.path.exists(md_file)
 
-            with open(md_file, 'r') as f:
+            with open(md_file, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             assert '# 仓库综合报告' in content

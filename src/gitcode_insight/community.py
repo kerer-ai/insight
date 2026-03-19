@@ -50,9 +50,44 @@ class GitCodeCommunityStats:
         self.label_yellow_ci_running = config.get("label_yellow_ci_running", "SC-RUNNING")
         self.label_yellow_ci_success = config.get("label_yellow_ci_success", "SC-SUCC")
         self.owner = config.get("owner", "boostkit")
+        self.repo_whitelist = self._normalize_repo_list(config.get("repo_whitelist"))
+        self.repo_blacklist = self._normalize_repo_list(config.get("repo_blacklist"))
 
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+
+    @staticmethod
+    def _normalize_repo_list(value) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        result = []
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            s = item.strip()
+            if s:
+                result.append(s)
+        return result
+
+    def _apply_repo_filters(self, projects: List[Dict]) -> List[Dict]:
+        if not projects:
+            return []
+
+        if self.repo_whitelist:
+            whitelist = set(self.repo_whitelist)
+            return [
+                p for p in projects
+                if p.get("path") in whitelist or p.get("name") in whitelist
+            ]
+
+        if self.repo_blacklist:
+            blacklist = set(self.repo_blacklist)
+            return [
+                p for p in projects
+                if p.get("path") not in blacklist and p.get("name") not in blacklist
+            ]
+
+        return projects
 
     def get_community_projects(self, page: int = 1, per_page: int = 20) -> List[Dict]:
         """
@@ -388,7 +423,13 @@ class GitCodeCommunityStats:
             time.sleep(0.5)
 
         print(f"获取项目列表：完成，共获取到 {len(all_projects)} 个项目")
-        return all_projects
+        filtered_projects = self._apply_repo_filters(all_projects)
+        if len(filtered_projects) != len(all_projects):
+            if self.repo_whitelist:
+                print(f"已启用仓库白名单过滤：{len(all_projects)} -> {len(filtered_projects)}")
+            elif self.repo_blacklist:
+                print(f"已启用仓库黑名单过滤：{len(all_projects)} -> {len(filtered_projects)}")
+        return filtered_projects
 
     def crawl_community_stats(self) -> Dict:
         """主函数：爬取社区的统计数据"""

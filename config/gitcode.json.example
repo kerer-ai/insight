@@ -4,5 +4,7 @@
     "label_ci_running": "ci-pipeline-running",
     "label_yellow_ci_running": "SC-RUNNING",
     "label_yellow_ci_success": "SC-SUCC",
-    "owner": "your_org_name"
+    "owner": "your_org_name",
+    "repo_whitelist": [],
+    "repo_blacklist": []
 }

@@ -37,6 +37,34 @@ class TestGenerateDashboard:
             assert "project1" in content
             assert "project2" in content
 
+    def test_generate_dashboard_with_whitelist(self, temp_config_file, temp_output_dir, sample_community_stats):
+        """测试 dashboard 白名单过滤展示"""
+        owner = "test_org"
+        json_file = os.path.join(temp_output_dir, f"{owner}_community_stats_detailed.json")
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(sample_community_stats, f)
+
+        with open(temp_config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        config["repo_whitelist"] = ["project1"]
+        config["repo_blacklist"] = ["project1", "project2"]
+        with open(temp_config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f)
+
+        with patch('builtins.print'):
+            generate_dashboard(config_file=temp_config_file, output_dir=temp_output_dir)
+
+        html_file = os.path.join(temp_output_dir, f"{owner}_community_dashboard.html")
+        with open(html_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            assert "project1" in content
+            assert "project2" not in content
+
+        md_file = os.path.join(temp_output_dir, f"{owner}_community_dashboard.md")
+        with open(md_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            assert "| 仓库总数 | 1 |" in content
+
     def test_generate_dashboard_missing_config(self, temp_output_dir):
         """测试配置文件不存在"""
         with patch('builtins.print') as mock_print:

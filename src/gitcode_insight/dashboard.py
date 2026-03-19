@@ -27,6 +27,8 @@ def generate_dashboard(config_file=None, output_dir=None):
         config = json.load(f)
 
     owner = config.get("owner", "Community")
+    repo_whitelist = _normalize_repo_list(config.get("repo_whitelist"))
+    repo_blacklist = _normalize_repo_list(config.get("repo_blacklist"))
 
     # 读取JSON数据
     json_file = os.path.join(output_dir, f"{owner}_community_stats_detailed.json")
@@ -37,6 +39,7 @@ def generate_dashboard(config_file=None, output_dir=None):
 
     with open(json_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
+    data = _filter_community_data(data, repo_whitelist, repo_blacklist)
 
     # 创建HTML内容
     html_content = '''<!DOCTYPE html>
@@ -347,6 +350,62 @@ def generate_dashboard(config_file=None, output_dir=None):
 
     # 生成Markdown文件
     generate_markdown_file(data, owner, current_time, output_dir)
+
+
+def _normalize_repo_list(value):
+    if not isinstance(value, list):
+        return []
+    result = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        s = item.strip()
+        if s:
+            result.append(s)
+    return result
+
+
+def _filter_community_data(data, repo_whitelist, repo_blacklist):
+    project_stats = data.get("project_stats") or {}
+    if not isinstance(project_stats, dict) or not project_stats:
+        return {"total_repos": 0, "project_stats": {}}
+
+    def matches(repo_name, project_info, targets):
+        if repo_name in targets:
+            return True
+        name = (project_info or {}).get("name")
+        if name in targets:
+            return True
+        url = (project_info or {}).get("url", "")
+        if isinstance(url, str) and url:
+            tail = url.rstrip("/").split("/")[-1]
+            if tail in targets:
+                return True
+        return False
+
+    items = list(project_stats.items())
+    if repo_whitelist:
+        whitelist = set(repo_whitelist)
+        filtered = {
+            repo_name: project_data
+            for repo_name, project_data in items
+            if matches(repo_name, project_data.get("project_info"), whitelist)
+        }
+        return {"total_repos": len(filtered), "project_stats": filtered}
+
+    if repo_blacklist:
+        blacklist = set(repo_blacklist)
+        filtered = {
+            repo_name: project_data
+            for repo_name, project_data in items
+            if not matches(repo_name, project_data.get("project_info"), blacklist)
+        }
+        return {"total_repos": len(filtered), "project_stats": filtered}
+
+    total_repos = data.get("total_repos")
+    if isinstance(total_repos, int) and total_repos == len(project_stats):
+        return data
+    return {"total_repos": len(project_stats), "project_stats": project_stats}
 
 
 def generate_markdown_file(data, owner, current_time, output_dir=None):

@@ -344,6 +344,7 @@ gc-insight issue --repo REPO --token TOKEN [选项]
 | `--repo`   | 是  | -           | 仓库名称（path） |
 | `--token`  | 是  | -           | API 访问令牌   |
 | `--days`   | 否  | 30          | 统计天数       |
+| `--range-by` | 否 | created | 统计范围口径：created=近N天创建；updated=近N天更新；active=近N天创建或更新 |
 | `--owner`  | 否  | 从配置读取       | 组织名        |
 | `--output` | 否  | `./output/` | 输出目录       |
 
@@ -355,6 +356,9 @@ gc-insight issue --repo kvrocks --token gct_xxxx
 
 # 分析近 90 天的 Issue
 gc-insight issue --repo kvrocks --token gct_xxxx --days 90
+
+# 近 3 天活跃 Issue（近 3 天创建或更新）
+gc-insight issue --repo kernel --owner openeuler --token gct_xxxx --days 3 --range-by active
 ```
 
 ### gc-insight pr

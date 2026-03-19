@@ -33,6 +33,7 @@ page	integer	否	页码，默认 1
 per_page	integer	否	每页条数，默认 20
 sort	string	否	排序字段：created/updated
 direction	string	否	排序方向：asc/desc
+since	string	否	起始时间（ISO8601），常用于按时间范围筛选（服务端是否生效以实际返回为准）
 响应
 200：返回 Issue 数组
 字段结构同「单个 Issue」

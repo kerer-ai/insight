@@ -18,7 +18,7 @@ from .utils import request_with_retry
 class GitCodeIssueInsight:
     """GitCode Issue 洞察分析器"""
 
-    def __init__(self, repo: str, token: str, owner: str = None, days: int = 30, output_dir: str = None):
+    def __init__(self, repo: str, token: str, owner: str = None, days: int = 30, range_by: str = "created", output_dir: str = None):
         """
         初始化
 
@@ -33,6 +33,7 @@ class GitCodeIssueInsight:
         self.token = token
         self.owner = owner or self._get_default_owner()
         self.days = days
+        self.range_by = range_by or "created"
         self.base_url = "https://api.gitcode.com/api/v5"
 
         # 设置输出目录
@@ -55,6 +56,14 @@ class GitCodeIssueInsight:
                 return config.get("owner", "")
         return ""
 
+    def _parse_datetime(self, date_str: str) -> Optional[datetime]:
+        if not date_str:
+            return None
+        try:
+            return datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
+        except Exception:
+            return None
+
     def get_issues(self) -> List[Dict]:
         """获取 Issue 列表"""
         print(f"获取 {self.owner}/{self.repo} 近 {self.days} 天的 Issue 列表...")
@@ -63,6 +72,7 @@ class GitCodeIssueInsight:
         all_issues = []
         page = 1
         max_pages = 50
+        sort_field = "created" if self.range_by == "created" else "updated"
 
         while page <= max_pages:
             params = {
@@ -71,7 +81,7 @@ class GitCodeIssueInsight:
                 "since": self.since_date,
                 "per_page": 100,
                 "page": page,
-                "sort": "created",
+                "sort": sort_field,
                 "direction": "desc"
             }
 
@@ -82,31 +92,71 @@ class GitCodeIssueInsight:
             if not isinstance(data, list) or len(data) == 0:
                 break
 
-            # 过滤在时间范围内的 issue
-            filtered = [
-                issue for issue in data
-                if self._is_within_range(issue.get("created_at", ""))
-                or self._is_within_range(issue.get("updated_at", ""))
-            ]
+            filtered = [issue for issue in data if self._is_issue_in_range(issue)]
 
             all_issues.extend(filtered)
             print(f"  第 {page} 页获取到 {len(filtered)} 条 Issue")
+
+            if self._should_stop_paging(data):
+                break
 
             if len(data) < 100:
                 break
 
             page += 1
 
+        all_issues.sort(key=self._sort_key, reverse=True)
         print(f"共获取到 {len(all_issues)} 条 Issue")
         return all_issues
+
+    def _should_stop_paging(self, data: List[Dict]) -> bool:
+        if not data:
+            return True
+        tail = data[-1]
+        since = self._parse_datetime(self.since_date)
+        if since is None:
+            return False
+
+        if self.range_by == "created":
+            tail_dt = self._parse_datetime(tail.get("created_at"))
+        else:
+            tail_dt = self._parse_datetime(tail.get("updated_at"))
+
+        if tail_dt is None:
+            return False
+        return tail_dt < since
+
+    def _is_issue_in_range(self, issue: Dict) -> bool:
+        if not isinstance(issue, dict):
+            return False
+        created_at = issue.get("created_at", "")
+        updated_at = issue.get("updated_at", "")
+
+        if self.range_by == "created":
+            return self._is_within_range(created_at)
+        if self.range_by == "updated":
+            return self._is_within_range(updated_at)
+        return self._is_within_range(created_at) or self._is_within_range(updated_at)
+
+    def _sort_key(self, issue: Dict):
+        if not isinstance(issue, dict):
+            return datetime.min.replace(tzinfo=timezone.utc)
+        created_dt = self._parse_datetime(issue.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc)
+        updated_dt = self._parse_datetime(issue.get("updated_at")) or created_dt
+
+        if self.range_by == "created":
+            return created_dt
+        if self.range_by == "updated":
+            return updated_dt
+        return updated_dt if updated_dt >= created_dt else created_dt
 
     def _is_within_range(self, date_str: str) -> bool:
         """检查日期是否在统计范围内"""
         if not date_str:
             return False
         try:
-            issue_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-            since = datetime.fromisoformat(self.since_date.replace("Z", "+00:00"))
+            issue_date = datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
+            since = datetime.fromisoformat(str(self.since_date).replace("Z", "+00:00"))
             return issue_date >= since
         except:
             return False

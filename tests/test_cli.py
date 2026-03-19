@@ -74,6 +74,7 @@ class TestCmdIssue:
         args.token = "test_token"
         args.owner = "test_org"
         args.days = 30
+        args.range_by = "created"
         args.output = temp_output_dir
 
         mock_insight = Mock()
@@ -93,6 +94,7 @@ class TestCmdIssue:
         args.token = "my_token"
         args.owner = "my_org"
         args.days = 60
+        args.range_by = "active"
         args.output = temp_output_dir
 
         with patch('gitcode_insight.cli.GitCodeIssueInsight') as MockClass:
@@ -106,6 +108,7 @@ class TestCmdIssue:
                 token="my_token",
                 owner="my_org",
                 days=60,
+                range_by="active",
                 output_dir=temp_output_dir
             )
 
@@ -265,3 +268,4 @@ class TestArgumentParsing:
                 call_args = mock_cmd.call_args[0][0]
                 assert call_args.days == 30  # 默认值
                 assert call_args.owner is None
+                assert call_args.range_by == "created"

@@ -60,6 +60,7 @@ def cmd_issue(args):
         token=args.token,
         owner=args.owner,
         days=args.days,
+        range_by=args.range_by,
         output_dir=args.output
     )
 
@@ -187,6 +188,7 @@ def main():
     issue_parser.add_argument("--repo", required=True, help="仓库名称（path）")
     issue_parser.add_argument("--token", required=True, help="API 访问令牌")
     issue_parser.add_argument("--days", type=int, default=30, help="统计天数，默认 30")
+    issue_parser.add_argument("--range-by", dest="range_by", choices=["created", "updated", "active"], default="created", help="统计范围口径：created=近N天创建，updated=近N天更新，active=近N天创建或更新（默认 created）")
     issue_parser.add_argument("--owner", default=None, help="组织名，默认从配置文件读取")
     issue_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
     issue_parser.set_defaults(func=cmd_issue)

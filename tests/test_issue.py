@@ -97,6 +97,7 @@ class TestGitCodeIssueInsight:
             token="test_token",
             owner="test_org",
             days=30,
+            range_by="created",
             output_dir=temp_output_dir
         )
 
@@ -108,6 +109,48 @@ class TestGitCodeIssueInsight:
 
         assert len(issues) == 2
         assert issues[0]["number"] == 1
+
+    def test_get_issues_range_by_active_includes_updated(self, temp_output_dir):
+        """测试 active 口径包含近 N 天更新的旧 Issue"""
+        now = datetime.now(timezone.utc)
+        sample = [
+            {
+                "number": 1,
+                "created_at": (now - timedelta(days=200)).isoformat(),
+                "updated_at": (now - timedelta(days=1)).isoformat()
+            },
+            {
+                "number": 2,
+                "created_at": (now - timedelta(days=1)).isoformat(),
+                "updated_at": (now - timedelta(days=1)).isoformat()
+            }
+        ]
+
+        insight_created = GitCodeIssueInsight(
+            repo="test-repo",
+            token="test_token",
+            owner="test_org",
+            days=3,
+            range_by="created",
+            output_dir=temp_output_dir
+        )
+        insight_active = GitCodeIssueInsight(
+            repo="test-repo",
+            token="test_token",
+            owner="test_org",
+            days=3,
+            range_by="active",
+            output_dir=temp_output_dir
+        )
+
+        with patch('gitcode_insight.issue.request_with_retry') as mock_request:
+            mock_request.return_value = sample
+            with patch('builtins.print'):
+                issues_created = insight_created.get_issues()
+                issues_active = insight_active.get_issues()
+
+        assert [i["number"] for i in issues_created] == [2]
+        assert sorted([i["number"] for i in issues_active]) == [1, 2]
 
     def test_get_issue_comments(self, temp_output_dir, sample_issue_comments):
         """测试获取 Issue 评论"""

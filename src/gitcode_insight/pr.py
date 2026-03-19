@@ -225,9 +225,6 @@ class GitCodePRInsight:
         merged = [p for p in prs_data if p["merged_at"]]
         closed_not_merged = [p for p in prs_data if p["state"] == "closed" and not p["merged_at"]]
 
-        # 草稿 PR
-        drafts = [p for p in prs_data if p["draft"]]
-
         # 冲突 PR
         conflicts = [p for p in prs_data if p["mergeable"] is False]
 
@@ -245,13 +242,11 @@ class GitCodePRInsight:
         review_times = [p["first_review_time"] for p in prs_data if p["first_review_time"]]
         avg_review_time = sum(review_times) / len(review_times) if review_times else 0
 
-        # 合并耗时统计
+        # 合并耗时统计（分钟）
         merge_durations = [p["merge_duration"] for p in prs_data if p["merge_duration"]]
         avg_merge_duration = sum(merge_durations) / len(merge_durations) if merge_durations else 0
-
-        # 打开天数统计
-        open_days_list = [p["open_days"] for p in prs_data if p["open_days"]]
-        avg_open_days = sum(open_days_list) / len(open_days_list) if open_days_list else 0
+        min_merge_duration = min(merge_durations) if merge_durations else 0
+        max_merge_duration = max(merge_durations) if merge_durations else 0
 
         # 创建者分布
         creator_dist = {}
@@ -287,13 +282,6 @@ class GitCodePRInsight:
             merger = pr["merged_by"]
             if merger:
                 merger_dist[merger] = merger_dist.get(merger, 0) + 1
-
-        # CI 状态统计
-        ci_success = [p for p in prs_data if p["pipeline_status"] == "success"]
-        ci_stats = {}
-        for pr in prs_data:
-            status = pr["pipeline_status"] or "unknown"
-            ci_stats[status] = ci_stats.get(status, 0) + 1
 
         # 每日趋势
         daily_trend = {}
@@ -340,15 +328,14 @@ class GitCodePRInsight:
                 "opened_prs": len(opened),
                 "merged_prs": len(merged),
                 "closed_prs": len(closed_not_merged),
-                "draft_prs": len(drafts),
                 "merge_rate": round(len(merged) / total * 100, 2) if total > 0 else 0,
-                "draft_rate": round(len(drafts) / total * 100, 2) if total > 0 else 0,
                 "conflict_rate": round(len(conflicts) / total * 100, 2) if total > 0 else 0
             },
             "efficiency": {
                 "avg_first_review_time_minutes": round(avg_review_time, 2),
                 "avg_merge_duration_hours": round(avg_merge_duration / 60, 2),
-                "avg_open_days": round(avg_open_days, 2),
+                "min_merge_duration_hours": round(min_merge_duration / 60, 2),
+                "max_merge_duration_hours": round(max_merge_duration / 60, 2),
                 "timely_review_rate": round(timely_review_rate, 2),
                 "review_time_samples": len(review_times),
                 "merge_duration_samples": len(merge_durations)
@@ -357,10 +344,7 @@ class GitCodePRInsight:
                 "avg_change_lines": round(avg_changes, 2),
                 "large_pr_count": len(large_prs),
                 "large_pr_rate": round(len(large_prs) / total * 100, 2) if total > 0 else 0,
-                "comment_density": round(comment_density, 4),
-                "ci_success_count": len(ci_success),
-                "ci_success_rate": round(len(ci_success) / total * 100, 2) if total > 0 else 0,
-                "ci_stats": ci_stats
+                "comment_density": round(comment_density, 4)
             },
             "distribution": {
                 "by_creator": dict(sorted(creator_dist.items(), key=lambda x: x[1], reverse=True)[:10]),
@@ -456,16 +440,8 @@ class GitCodePRInsight:
                 <div class="stat-label">已关闭(未合并)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{summary["draft_prs"]}</div>
-                <div class="stat-label">草稿 PR</div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-value">{summary["merge_rate"]}%</div>
                 <div class="stat-label">合并率</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{summary["draft_rate"]}%</div>
-                <div class="stat-label">草稿率</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{summary["conflict_rate"]}%</div>
@@ -484,8 +460,12 @@ class GitCodePRInsight:
                 <div class="stat-label">平均合并耗时(小时)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{efficiency["avg_open_days"]:.1f}</div>
-                <div class="stat-label">平均打开天数</div>
+                <div class="stat-value">{efficiency["min_merge_duration_hours"]:.1f}</div>
+                <div class="stat-label">最短合并耗时(小时)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{efficiency["max_merge_duration_hours"]:.1f}</div>
+                <div class="stat-label">最长合并耗时(小时)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{efficiency["timely_review_rate"]}%</div>
@@ -510,10 +490,6 @@ class GitCodePRInsight:
             <div class="stat-card">
                 <div class="stat-value">{quality["comment_density"]:.4f}</div>
                 <div class="stat-label">评论密度</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{quality["ci_success_rate"]}%</div>
-                <div class="stat-label">CI成功率</div>
             </div>
         </div>
 
@@ -698,9 +674,7 @@ class GitCodePRInsight:
 | 打开中 | {summary["opened_prs"]} |
 | 已合并 | {summary["merged_prs"]} |
 | 已关闭(未合并) | {summary["closed_prs"]} |
-| 草稿 PR | {summary["draft_prs"]} |
 | 合并率 | {summary["merge_rate"]}% |
-| 草稿率 | {summary["draft_rate"]}% |
 | 冲突率 | {summary["conflict_rate"]}% |
 
 ## 效率指标
@@ -709,7 +683,8 @@ class GitCodePRInsight:
 |------|------|
 | 平均首次评审 | {efficiency["avg_first_review_time_minutes"]:.1f} 分钟 |
 | 平均合并耗时 | {efficiency["avg_merge_duration_hours"]:.1f} 小时 |
-| 平均打开天数 | {efficiency["avg_open_days"]:.1f} 天 |
+| 最短合并耗时 | {efficiency["min_merge_duration_hours"]:.1f} 小时 |
+| 最长合并耗时 | {efficiency["max_merge_duration_hours"]:.1f} 小时 |
 | 24h评审率 | {efficiency["timely_review_rate"]}% |
 | 评审时间样本数 | {efficiency["review_time_samples"]} |
 | 合并耗时样本数 | {efficiency["merge_duration_samples"]} |
@@ -722,7 +697,6 @@ class GitCodePRInsight:
 | 大PR数(>500行) | {quality["large_pr_count"]} |
 | 大PR占比 | {quality["large_pr_rate"]}% |
 | 评论密度 | {quality["comment_density"]:.4f} |
-| CI成功率 | {quality["ci_success_rate"]}% |
 
 ## 每日趋势
 
@@ -829,6 +803,8 @@ class GitCodePRInsight:
         print(f"合并率: {insights['summary']['merge_rate']}%")
         print(f"平均首次评审: {insights['efficiency']['avg_first_review_time_minutes']:.1f} 分钟")
         print(f"平均合并耗时: {insights['efficiency']['avg_merge_duration_hours']:.1f} 小时")
+        print(f"最短合并耗时: {insights['efficiency']['min_merge_duration_hours']:.1f} 小时")
+        print(f"最长合并耗时: {insights['efficiency']['max_merge_duration_hours']:.1f} 小时")
         print(f"平均变更行数: {insights['quality']['avg_change_lines']:.0f}")
         print(f"\n输出文件:")
         print(f"- JSON 数据: {json_file}")

@@ -398,25 +398,21 @@ class TestGitCodePRInsight:
                 "opened_prs": 3,
                 "merged_prs": 6,
                 "closed_prs": 1,
-                "draft_prs": 2,
                 "merge_rate": 60.0,
-                "draft_rate": 20.0,
                 "conflict_rate": 10.0
             },
             "efficiency": {
                 "avg_first_review_time_minutes": 120.0,
                 "avg_merge_duration_hours": 24.0,
-                "avg_open_days": 3.5,
+                "min_merge_duration_hours": 2.0,
+                "max_merge_duration_hours": 72.0,
                 "timely_review_rate": 80.0
             },
             "quality": {
                 "avg_change_lines": 150.0,
                 "large_pr_count": 2,
                 "large_pr_rate": 20.0,
-                "comment_density": 0.05,
-                "ci_success_count": 8,
-                "ci_success_rate": 80.0,
-                "ci_stats": {"success": 8, "pending": 2}
+                "comment_density": 0.05
             },
             "distribution": {
                 "by_creator": {"user1": 5, "user2": 3},

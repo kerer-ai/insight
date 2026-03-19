@@ -171,7 +171,6 @@ def get_issues(self):
 | 指标 | 计算方式 | 数据来源 |
 |------|----------|----------|
 | 总 Issue 数 | 时间范围内 Issue 总数 | API 返回 |
-| 新增 Issue | 新创建的 Issue 数 | created_at 在范围内 |
 | 未关闭 Issue | state=open 的数量 | API state 字段 |
 | 已关闭 Issue | state=closed 的数量 | API state 字段 |
 | 关闭率 | 已关闭 / 总数 * 100% | 计算得出 |

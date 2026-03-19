@@ -1,0 +1,24 @@
+# 输出文件
+output/
+
+# 构建产物
+dist/
+*.egg-info/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

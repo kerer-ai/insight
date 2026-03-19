@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitcode-insight"
+version = "0.1.0"
+description = "GitCode 平台代码洞察工具"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.7"
+authors = [
+    {name = "GitCode Insight Team"}
+]
+keywords = ["gitcode", "insight", "analytics", "dashboard"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "requests>=2.25.0",
+]
+
+[project.scripts]
+gc-insight = "gitcode_insight.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/example/gitcode-insight"
+Repository = "https://github.com/example/gitcode-insight"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -94,6 +94,7 @@ class TestGitCodeRepoStats:
                     "active_days": 3,
                     "active_days_rate": 100.0,
                     "trend": "up",
+                    "daily_trend": {"2026-03-03": 10},
                     "top_days": [{"date": "2026-03-03", "count": 10, "total": 120}],
                     "details": [{"pdate": "2026-03-03", "today_dl_cnt": 10, "total_dl_cnt": 120}]
                 },
@@ -103,11 +104,14 @@ class TestGitCodeRepoStats:
                     "unique_fork_owners": 2,
                     "personal_forks": 1,
                     "organization_forks": 1,
+                    "daily_trend": {"2026-03-03": 1},
                     "latest_fork": {"full_name": "user1/test_repo", "created_at": "2026-03-03T10:00:00+08:00"},
                     "top_fork_users": [{"owner": "user1", "count": 1, "latest_created_at": "2026-03-03T10:00:00+08:00"}],
-                    "latest_forks": [{"full_name": "user1/test_repo", "owner": "user1", "namespace_type": "personal", "created_at": "2026-03-03T10:00:00+08:00", "pushed_at": "2026-03-05T10:00:00+08:00"}],
-                    "forks": [{"full_name": "user1/test_repo", "owner": "user1", "namespace_type": "personal", "created_at": "2026-03-03T10:00:00+08:00", "updated_at": "2026-03-04T10:00:00+08:00", "pushed_at": "2026-03-05T10:00:00+08:00", "private": False}]
-                }
+                    "latest_forks": [{"full_name": "user1/test_repo", "owner": "user1", "namespace_type": "personal", "created_at": "2026-03-03T10:00:00+08:00", "pushed_at": "2026-03-05T10:00:00+08:00"}]
+                },
+                "fork_list": [
+                    {"full_name": "user1/test_repo", "owner": "user1", "namespace_type": "personal", "created_at": "2026-03-03T10:00:00+08:00", "pushed_at": "2026-03-05T10:00:00+08:00"}
+                ]
             }
 
             md_file = os.path.join(tmpdir, "repo_stats_test_owner_test_repo_30d.md")
@@ -158,5 +162,8 @@ class TestGitCodeRepoStats:
 
             with open(json_file, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
-            assert "download_stats" in loaded
-            assert "fork_stats" in loaded
+            # 新的 JSON 结构
+            assert "statistics" in loaded
+            assert "raw_data" in loaded
+            assert "download_stats" in loaded["statistics"]
+            assert "fork_stats" in loaded["statistics"]

@@ -333,8 +333,9 @@ class GitCodePRInsight:
             try:
                 merged_date = datetime.fromisoformat(pr["merged_at"].replace("Z", "+00:00"))
                 date_str = merged_date.strftime("%Y-%m-%d")
-                if date_str in daily_trend:
-                    daily_trend[date_str]["merged"] += 1
+                if date_str not in daily_trend:
+                    daily_trend[date_str] = {"created": 0, "merged": 0, "closed": 0}
+                daily_trend[date_str]["merged"] += 1
             except:
                 pass
 
@@ -342,8 +343,9 @@ class GitCodePRInsight:
             try:
                 closed_date = datetime.fromisoformat(pr["closed_at"].replace("Z", "+00:00"))
                 date_str = closed_date.strftime("%Y-%m-%d")
-                if date_str in daily_trend:
-                    daily_trend[date_str]["closed"] += 1
+                if date_str not in daily_trend:
+                    daily_trend[date_str] = {"created": 0, "merged": 0, "closed": 0}
+                daily_trend[date_str]["closed"] += 1
             except:
                 pass
 

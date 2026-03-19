@@ -132,9 +132,40 @@ curl -X GET "https://api.gitcode.com/api/v5/repos/xiaogang_test/test222/pulls?st
 ```
 
 ---
+## **PR 状态判断注意事项**
+
+### **`state` 字段值**
+GitCode PR API 返回的 `state` 字段实际值：
+- `"open"` - 打开中
+- `"merged"` - 已合并
+- `"closed"` - 已关闭（未合并）
+
+**注意**：不是 `"opened"`，只有 `"open"`。
+
+### **合并状态判断**
+判断 PR 是否已合并，应优先检查 `merged_at` 字段是否非空，而非仅依赖 `state` 字段：
+
+```python
+# 推荐方式
+merged_prs = [pr for pr in prs_data if pr["merged_at"]]
+
+# 不推荐（可能遗漏）
+merged_prs = [pr for pr in prs_data if pr["state"] == "merged"]
+```
+
+### **关闭状态判断**
+关闭但未合并的 PR 应同时检查两个条件：
+```python
+closed_not_merged = [pr for pr in prs_data if pr["state"] == "closed" and not pr["merged_at"]]
+```
+
+---
+
 ## **常见问题 (FAQ)**
 - **Q: 为什么返回的列表不完整？**
   - A: 默认只返回 `state=open` 的 PR，如需查看全部，请设置 `state=all`。
 - **Q: 负责人 (Assignees) 和 测试人员 (Testers) 有什么区别？**
   - A: 负责人负责代码合并，测试人员负责 PR 的质量验证。
+- **Q: `state="closed"` 和 `state="merged"` 有什么区别？**
+  - A: `merged` 表示 PR 已成功合并到目标分支，`closed` 表示 PR 被关闭但未合并（如被拒绝或废弃）。
 

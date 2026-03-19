@@ -13,6 +13,7 @@ from .dashboard import generate_dashboard, generate_markdown_file
 from .repo_stats import GitCodeRepoStats
 from .subscribers import GitCodeSubscribers
 from .languages import GitCodeLanguages
+from .report import GitCodeReport
 
 __all__ = [
     "GitCodeCommunityStats",
@@ -23,4 +24,5 @@ __all__ = [
     "GitCodeRepoStats",
     "GitCodeSubscribers",
     "GitCodeLanguages",
+    "GitCodeReport",
 ]

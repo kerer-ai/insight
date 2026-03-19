@@ -14,6 +14,7 @@ from .dashboard import generate_dashboard
 from .repo_stats import GitCodeRepoStats
 from .subscribers import GitCodeSubscribers
 from .languages import GitCodeLanguages
+from .report import GitCodeReport
 
 
 def get_config_owner(config_file):
@@ -153,6 +154,19 @@ def cmd_dashboard(args):
     generate_dashboard(config_file=config_file, output_dir=output_dir)
 
 
+def cmd_report(args):
+    """仓库综合报告命令"""
+    report = GitCodeReport(
+        repo=args.repo,
+        token=args.token,
+        owner=args.owner,
+        days=args.days,
+        output_dir=args.output
+    )
+
+    report.run()
+
+
 def main():
     """主入口"""
     parser = argparse.ArgumentParser(
@@ -217,6 +231,15 @@ def main():
     dashboard_parser.add_argument("--config", default=None, help="配置文件路径，默认使用 ./config/gitcode.json")
     dashboard_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
     dashboard_parser.set_defaults(func=cmd_dashboard)
+
+    # report 子命令
+    report_parser = subparsers.add_parser("report", help="仓库综合报告")
+    report_parser.add_argument("--repo", required=True, help="仓库名称（path）")
+    report_parser.add_argument("--token", required=True, help="API 访问令牌")
+    report_parser.add_argument("--days", type=int, default=30, help="统计天数，默认 30")
+    report_parser.add_argument("--owner", default=None, help="组织名，默认从配置文件读取")
+    report_parser.add_argument("--output", default=None, help="输出目录，默认使用 ./output/")
+    report_parser.set_defaults(func=cmd_report)
 
     args = parser.parse_args()
 

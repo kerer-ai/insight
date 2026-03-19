@@ -638,25 +638,21 @@ class GitCodeReport:
 
 | 日期 | 当日下载 | 截止当日累计 |
 |------|----------|--------------|
-
-
+'''
         for item in download_stats.get("top_days", [])[:10]:
             md_content += f"| {item.get('date', '-')} | {item.get('count', 0)} | {item.get('total', 0):,} |\n"
 
-        md_content += '''
-
+        md_content += f'''
 #### Fork 人员 Top 10
 
 | 用户 | Fork 数 | 最新 Fork 时间 |
 |------|--------|----------------|
 '''
-
         for item in fork_stats.get("top_fork_users", [])[:10]:
             md_content += f"| {item.get('owner', '-')} | {item.get('count', 0)} | {item.get('latest_created_at', '-')[:19]} |\n"
 
         md_content += f'''
 ## 社区活跃
-
 
 ### 订阅用户
 
@@ -675,7 +671,6 @@ class GitCodeReport:
 #### 语言占比
 
 '''
-
         # 添加语言占比
         languages = language_stats.get("languages", {})
         for lang, percent in list(languages.items())[:10]:

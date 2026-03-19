@@ -341,7 +341,7 @@ class GitCodeRepoStats:
                 <div class="card"><div class="label">Fork 人员数</div><div class="value">{fork_stats.get('unique_fork_owners', 0)}</div></div>
                 <div class="card"><div class="label">个人 Fork 数</div><div class="value">{fork_stats.get('personal_forks', 0)}</div></div>
                 <div class="card"><div class="label">组织 Fork 数</div><div class="value">{fork_stats.get('organization_forks', 0)}</div></div>
-                <div class="card"><div class="label">最新 Fork</div><div class="value">{fork_stats.get('latest_fork', {}).get('full_name', '-')}</div></div>
+                <div class="card"><div class="label">最新 Fork</div><div class="value">{(fork_stats.get('latest_fork') or {}).get('full_name', '-')}</div></div>
             </div>
             <h3>Fork 人员 Top 10</h3>
             <table>

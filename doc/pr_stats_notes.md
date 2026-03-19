@@ -258,6 +258,106 @@ GitCode API 限制每分钟 100 次请求。代码通过以下方式处理：
 2. **429 重试**：遇到 429 状态码自动等待后重试
 3. **统一请求函数**：使用 `utils.request_with_retry()`
 
+## 输出格式
+
+PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
+
+### 输出文件
+
+| 文件名 | 格式 | 说明 |
+|--------|------|------|
+| `pr_insight_{repo}_{days}d.json` | JSON | 统计数据 + 原始数据 |
+| `pr_insight_{repo}_{days}d.html` | HTML | 可视化洞察报告 |
+| `pr_insight_{repo}_{days}d.md` | Markdown | Markdown 洞察报告 |
+
+### JSON 文件结构
+
+```json
+{
+  "statistics": {
+    "repo": "openeuler/kernel",
+    "analysis_period": "近 7 天",
+    "analysis_time": "2026-03-19 19:18:56",
+    "summary": {
+      "total_prs": 189,
+      "opened_prs": 76,
+      "merged_prs": 40,
+      "closed_prs": 73,
+      "draft_prs": 1,
+      "merge_rate": 21.16,
+      "draft_rate": 0.53,
+      "conflict_rate": 0.53
+    },
+    "efficiency": {
+      "avg_first_review_time_minutes": 0.2,
+      "avg_merge_duration_hours": 97.86,
+      "avg_open_days": 12.28,
+      "timely_review_rate": 100.0,
+      "review_time_samples": 189,
+      "merge_duration_samples": 40
+    },
+    "quality": {
+      "avg_change_lines": 4520.98,
+      "large_pr_count": 25,
+      "large_pr_rate": 13.23,
+      "comment_density": 0.0065,
+      "ci_success_count": 0,
+      "ci_success_rate": 0.0,
+      "ci_stats": {"unknown": 189}
+    },
+    "distribution": {
+      "by_creator": {"gaojuxin09": 70, ...},
+      "by_target_branch": {"OLK-6.6": 163, ...},
+      "by_label": {"sig/Kernel": 188, ...},
+      "by_reviewer": {"zhengzengkai": 188, ...},
+      "by_merger": {"openeuler-ci-bot": 40}
+    },
+    "daily_trend": {
+      "2026-03-12": {"created": 30, "merged": 5, "closed": 10},
+      ...
+    }
+  },
+  "raw_data": [
+    {
+      "pr_number": 21311,
+      "title": "feat: ...",
+      "state": "open",
+      "creator": "user1",
+      ...
+    },
+    ...
+  ]
+}
+```
+
+### HTML 报告内容
+
+HTML 报告包含以下部分：
+
+1. **概览统计**：总 PR 数、打开中、已合并、已关闭、草稿 PR、合并率、草稿率、冲突率
+2. **效率指标**：平均首次评审时间、平均合并耗时、平均打开天数、24h 评审率
+3. **质量指标**：平均变更行数、大 PR 数、大 PR 占比、评论密度、CI 成功率
+4. **趋势图表**：每日 PR 趋势、创建者分布、目标分支分布、代码变更规模分布
+5. **分布统计**：创建者、目标分支、标签、合并者分布列表
+
+### Markdown 报告内容
+
+Markdown 报告包含：
+
+- 概览统计表格
+- 效率指标表格
+- 质量指标表格
+- 每日趋势表格
+- 各分布统计表格
+
+### 与 Issue 命令的一致性
+
+PR 命令输出格式与 Issue 命令保持一致：
+
+- **不输出 CSV 文件**：统计数据和原始数据统一保存在 JSON 文件中
+- **JSON 结构**：`statistics` 存储汇总指标，`raw_data` 存储原始 PR 数据
+- **三种格式**：JSON（数据）、HTML（可视化）、Markdown（文档）
+
 ## 相关文档
 
 - [GitCode PR API 文档](./gitcode_api/pulls_list.md)

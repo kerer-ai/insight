@@ -116,9 +116,7 @@ for pr in merged:
 | 打开中 | PR `state` 字段 | `state == "open"` 的 PR 数量 |
 | 已合并 | PR `merged_at` 字段 | `merged_at` 非空的 PR 数量（非 `state == "merged"`） |
 | 已关闭(未合并) | PR `state` + `merged_at` | `state == "closed" and not merged_at` 的 PR 数量 |
-| 草稿 PR | PR `draft` 字段 | `draft == True` 的 PR 数量 |
 | 合并率 | 计算得出 | `已合并 / 总数 * 100%` |
-| 草稿率 | 计算得出 | `草稿 PR / 总数 * 100%` |
 | 冲突率 | PR `mergeable` 字段 | `mergeable == False` 的 PR 占比 |
 
 **代码位置**：`pr.py:246-254`
@@ -127,7 +125,6 @@ for pr in merged:
 opened = [p for p in prs_data if p["state"] == "open"]
 merged = [p for p in prs_data if p["merged_at"]]
 closed_not_merged = [p for p in prs_data if p["state"] == "closed" and not p["merged_at"]]
-drafts = [p for p in prs_data if p["draft"]]
 conflicts = [p for p in prs_data if p["mergeable"] is False]
 ```
 
@@ -137,7 +134,8 @@ conflicts = [p for p in prs_data if p["mergeable"] is False]
 |------|----------|----------|
 | 平均首次评审(分钟) | PR 评论 API | 非创建者的首条评论时间 - PR 创建时间，取平均值 |
 | 平均合并耗时(小时) | PR `merged_at` + `created_at` | `merged_at - created_at`，已合并 PR 的平均值，转换为小时 |
-| 平均打开天数 | PR `created_at` + 当前时间 | 仅针对 `state == "open"` 的 PR，当前时间 - 创建时间 |
+| 最短合并耗时(小时) | PR `merged_at` + `created_at` | 已合并 PR 中耗时最短的，转换为小时 |
+| 最长合并耗时(小时) | PR `merged_at` + `created_at` | 已合并 PR 中耗时最长的，转换为小时 |
 | 24h 评审率 | 计算得出 | 首次评审时间 ≤ 1440 分钟（24小时）的 PR 占比 |
 
 **首次评审时间计算**（`pr.py:129-143`）：
@@ -172,7 +170,6 @@ if merged_at and created_at_str:
 | 大 PR 数(>500行) | PR 变更行数 | `total_changes > 500` 的 PR 数量 |
 | 大 PR 占比 | 计算得出 | 大 PR 数 / 总数 * 100% |
 | 评论密度 | PR `notes` 字段 | 总评论数 / 总变更行数 |
-| CI 成功率 | PR `pipeline_status` 字段 | `pipeline_status == "success"` 的 PR 占比 |
 
 **代码位置**：`pr.py:256-264`
 
@@ -283,15 +280,14 @@ PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
       "opened_prs": 76,
       "merged_prs": 40,
       "closed_prs": 73,
-      "draft_prs": 1,
       "merge_rate": 21.16,
-      "draft_rate": 0.53,
       "conflict_rate": 0.53
     },
     "efficiency": {
       "avg_first_review_time_minutes": 0.2,
       "avg_merge_duration_hours": 97.86,
-      "avg_open_days": 12.28,
+      "min_merge_duration_hours": 3.1,
+      "max_merge_duration_hours": 888.1,
       "timely_review_rate": 100.0,
       "review_time_samples": 189,
       "merge_duration_samples": 40
@@ -300,10 +296,7 @@ PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
       "avg_change_lines": 4520.98,
       "large_pr_count": 25,
       "large_pr_rate": 13.23,
-      "comment_density": 0.0065,
-      "ci_success_count": 0,
-      "ci_success_rate": 0.0,
-      "ci_stats": {"unknown": 189}
+      "comment_density": 0.0065
     },
     "distribution": {
       "by_creator": {"gaojuxin09": 70, ...},
@@ -334,9 +327,9 @@ PR 洞察命令生成三个输出文件，格式与 Issue 命令保持一致：
 
 HTML 报告包含以下部分：
 
-1. **概览统计**：总 PR 数、打开中、已合并、已关闭、草稿 PR、合并率、草稿率、冲突率
-2. **效率指标**：平均首次评审时间、平均合并耗时、平均打开天数、24h 评审率
-3. **质量指标**：平均变更行数、大 PR 数、大 PR 占比、评论密度、CI 成功率
+1. **概览统计**：总 PR 数、打开中、已合并、已关闭、合并率、冲突率
+2. **效率指标**：平均首次评审时间、平均合并耗时、最短合并耗时、最长合并耗时、24h 评审率
+3. **质量指标**：平均变更行数、大 PR 数、大 PR 占比、评论密度
 4. **趋势图表**：每日 PR 趋势、创建者分布、目标分支分布、代码变更规模分布
 5. **分布统计**：创建者、目标分支、标签、合并者分布列表
 

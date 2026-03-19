@@ -355,7 +355,7 @@ class TestGitCodePRInsight:
             }
         ]
 
-        result = insight.calculate_insights(prs_data)
+        result, raw_data = insight.calculate_insights(prs_data)
 
         assert result["summary"]["total_prs"] == 2
         assert result["summary"]["opened_prs"] == 1
@@ -374,63 +374,10 @@ class TestGitCodePRInsight:
             output_dir=temp_output_dir
         )
 
-        result = insight.calculate_insights([])
+        result, raw_data = insight.calculate_insights([])
 
         assert result["summary"]["total_prs"] == 0
         assert result["summary"]["merge_rate"] == 0
-
-    def test_save_to_csv(self, temp_output_dir):
-        """测试保存 CSV 文件"""
-        insight = GitCodePRInsight(
-            repo="test-repo",
-            token="test_token",
-            owner="test_org",
-            days=30,
-            output_dir=temp_output_dir
-        )
-
-        prs_data = [
-            {
-                "pr_number": 1,
-                "title": "Test PR",
-                "state": "open",
-                "draft": False,
-                "locked": False,
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-02T00:00:00Z",
-                "merged_at": "",
-                "closed_at": "",
-                "creator": "user1",
-                "source_branch": "feature/test",
-                "target_branch": "main",
-                "added_lines": 100,
-                "removed_lines": 20,
-                "total_changes": 120,
-                "notes_count": 3,
-                "labels": "enhancement",
-                "assignees": "reviewer1",
-                "testers": "",
-                "merged_by": "",
-                "mergeable": True,
-                "pipeline_status": "success",
-                "html_url": "https://example.com/pull/1",
-                "first_review_time": 60.0,
-                "merge_duration": None,
-                "close_duration": None,
-                "open_days": None
-            }
-        ]
-
-        output_file = os.path.join(temp_output_dir, "test_prs.csv")
-        with patch('builtins.print'):
-            insight.save_to_csv(prs_data, output_file)
-
-        assert os.path.exists(output_file)
-
-        with open(output_file, 'r', encoding='utf-8-sig') as f:
-            content = f.read()
-            assert "Test PR" in content
-            assert "user1" in content
 
     def test_generate_html_report(self, temp_output_dir):
         """测试生成 HTML 报告"""
@@ -481,13 +428,17 @@ class TestGitCodePRInsight:
             "daily_trend": {
                 "2024-01-01": {"created": 2, "merged": 1, "closed": 0},
                 "2024-01-02": {"created": 3, "merged": 2, "closed": 1}
-            },
-            "prs": []
+            }
         }
+
+        prs_data = [
+            {"total_changes": 100},
+            {"total_changes": 200}
+        ]
 
         output_file = os.path.join(temp_output_dir, "test_report.html")
         with patch('builtins.print'):
-            insight.generate_html_report(insights, output_file)
+            insight.generate_html_report(insights, prs_data, output_file)
 
         assert os.path.exists(output_file)
 

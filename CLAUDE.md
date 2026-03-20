@@ -71,9 +71,9 @@ src/gitcode_insight/
 - `dashboard`: 检测数据文件 → 不存在则自动采集 → 生成 HTML/Markdown 看板
 - `issue/pr`: 获取仓库数据 → 分析统计 → 生成报告
 - `repo-stats`: 获取仓库数据（下载/Fork/订阅用户/编程语言）→ 分析统计 → 生成报告
-- `report`: 智能检测各模块数据 → 不存在则自动采集 → 整合生成综合报告
+- `report`: 直接采集 Issue/PR/RepoStats 数据 → 整合生成综合报告
 
-**智能数据采集**：`dashboard` 和 `report` 命令会自动检测数据文件是否存在，不存在则调用对应命令采集。
+**智能数据采集**：仅 `dashboard` 命令会自动检测数据文件是否存在，不存在则调用 `community` 命令采集。
 
 ## 开发新命令
 

@@ -47,16 +47,9 @@ class GitCodeReport:
                 return config.get("owner", "")
         return ""
 
-    def _check_or_collect_issue(self) -> Dict:
-        """检查或采集 Issue 数据"""
-        json_file = os.path.join(self.output_dir, f"issue_insight_{self.repo}_{self.days}d.json")
-
-        if os.path.exists(json_file):
-            print(f"发现现有 Issue 数据: {json_file}")
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-
-        print(f"未找到 Issue 数据，开始采集...")
+    def _collect_issue_data(self) -> Dict:
+        """采集 Issue 数据"""
+        print(f"\n采集 Issue 数据...")
         insight = GitCodeIssueInsight(
             repo=self.repo,
             token=self.token,
@@ -64,18 +57,12 @@ class GitCodeReport:
             days=self.days,
             output_dir=self.output_dir
         )
+        # 直接获取数据，不保存文件
         return insight.run()
 
-    def _check_or_collect_pr(self) -> Dict:
-        """检查或采集 PR 数据"""
-        json_file = os.path.join(self.output_dir, f"pr_insight_{self.repo}_{self.days}d.json")
-
-        if os.path.exists(json_file):
-            print(f"发现现有 PR 数据: {json_file}")
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-
-        print(f"未找到 PR 数据，开始采集...")
+    def _collect_pr_data(self) -> Dict:
+        """采集 PR 数据"""
+        print(f"\n采集 PR 数据...")
         insight = GitCodePRInsight(
             repo=self.repo,
             token=self.token,
@@ -83,18 +70,12 @@ class GitCodeReport:
             days=self.days,
             output_dir=self.output_dir
         )
+        # 直接获取数据，不保存文件
         return insight.run()
 
-    def _check_or_collect_repo_stats(self) -> Dict:
-        """检查或采集仓库统计数据（包含下载、Fork、订阅用户、编程语言）"""
-        json_file = os.path.join(self.output_dir, f"repo_stats_{self.owner}_{self.repo}_{self.days}d.json")
-
-        if os.path.exists(json_file):
-            print(f"发现现有仓库统计数据: {json_file}")
-            with open(json_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-
-        print(f"未找到仓库统计数据，开始采集...")
+    def _collect_repo_stats_data(self) -> Dict:
+        """采集仓库统计数据（包含下载、Fork、订阅用户、编程语言）"""
+        print(f"\n采集仓库统计数据...")
         stats = GitCodeRepoStats(
             repo=self.repo,
             token=self.token,
@@ -102,19 +83,17 @@ class GitCodeReport:
             days=self.days,
             output_dir=self.output_dir
         )
-        stats.run()
-        # 重新读取保存的数据
-        with open(json_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # 直接获取数据，不保存文件
+        return stats.run()
 
     def collect_all_data(self) -> Dict:
         """采集所有模块数据"""
         print(f"\n{'='*60}")
         print(f"开始采集数据...")
-        print(f"{'='*60}\n")
+        print(f"{'='*60}")
 
         # 采集仓库统计数据（包含订阅用户和编程语言）
-        repo_stats_data = self._check_or_collect_repo_stats()
+        repo_stats_data = self._collect_repo_stats_data()
 
         # 从 repo_stats 数据中提取统计信息
         statistics = repo_stats_data.get("statistics", {})
@@ -123,12 +102,16 @@ class GitCodeReport:
         subscriber_stats = statistics.get("subscriber_stats", {})
         language_stats = statistics.get("language_stats", {})
 
+        # 采集 Issue 和 PR 数据
+        issue_data = self._collect_issue_data()
+        pr_data = self._collect_pr_data()
+
         data = {
             "repo": f"{self.owner}/{self.repo}",
             "analysis_period": f"近 {self.days} 天",
             "analysis_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "issue": self._check_or_collect_issue(),
-            "pr": self._check_or_collect_pr(),
+            "issue": issue_data,
+            "pr": pr_data,
             "repo_stats": {
                 "download_stats": download_stats,
                 "fork_stats": fork_stats

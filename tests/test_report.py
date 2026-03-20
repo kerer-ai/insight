@@ -64,61 +64,6 @@ class TestGitCodeReport:
                 )
                 assert report.owner == 'config_owner'
 
-    def test_check_or_collect_issue_existing_file(self):
-        """测试检测到现有 Issue 数据文件"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # 创建现有的 Issue 数据文件
-            existing_data = {'summary': {'total_issues': 100}}
-            issue_file = os.path.join(tmpdir, 'issue_insight_test_repo_30d.json')
-            with open(issue_file, 'w') as f:
-                json.dump(existing_data, f)
-
-            report = GitCodeReport(
-                repo='test_repo',
-                token='test_token',
-                owner='test_owner',
-                output_dir=tmpdir
-            )
-
-            result = report._check_or_collect_issue()
-            assert result == existing_data
-
-    def test_check_or_collect_pr_existing_file(self):
-        """测试检测到现有 PR 数据文件"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            existing_data = {'summary': {'total_prs': 50}}
-            pr_file = os.path.join(tmpdir, 'pr_insight_test_repo_30d.json')
-            with open(pr_file, 'w') as f:
-                json.dump(existing_data, f)
-
-            report = GitCodeReport(
-                repo='test_repo',
-                token='test_token',
-                owner='test_owner',
-                output_dir=tmpdir
-            )
-
-            result = report._check_or_collect_pr()
-            assert result == existing_data
-
-    def test_check_or_collect_repo_stats_existing_file(self):
-        """测试检测到现有仓库统计数据文件"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            existing_data = {'download_stats': {'period_total': 1000}}
-            stats_file = os.path.join(tmpdir, 'repo_stats_test_owner_test_repo_30d.json')
-            with open(stats_file, 'w') as f:
-                json.dump(existing_data, f)
-
-            report = GitCodeReport(
-                repo='test_repo',
-                token='test_token',
-                owner='test_owner',
-                output_dir=tmpdir
-            )
-
-            result = report._check_or_collect_repo_stats()
-            assert result == existing_data
-
     def test_collect_all_data(self):
         """测试采集所有数据"""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -146,9 +91,9 @@ class TestGitCodeReport:
                 }
             }
 
-            with patch.object(report, '_check_or_collect_issue', return_value=mock_issue_data), \
-                 patch.object(report, '_check_or_collect_pr', return_value=mock_pr_data), \
-                 patch.object(report, '_check_or_collect_repo_stats', return_value=mock_repo_stats_data):
+            with patch.object(report, '_collect_issue_data', return_value=mock_issue_data), \
+                 patch.object(report, '_collect_pr_data', return_value=mock_pr_data), \
+                 patch.object(report, '_collect_repo_stats_data', return_value=mock_repo_stats_data):
 
                 data = report.collect_all_data()
 

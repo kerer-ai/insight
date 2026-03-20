@@ -840,6 +840,14 @@ A: 检查网络连接，确认 Access Token 有效。如遇限流，等待几分
 
 ## 更新日志
 
+### v0.5.3 (2026-03-20)
+
+- 修复：`report` 命令 "CI 成功率" 数据来源问题
+  - 原先 CI 成功率是编造的数据，始终显示 0%
+  - 现根据 PR 标签中的 `ci_successful` 和 `ci_failed` 正确计算
+  - CI 成功率 = ci_successful / (ci_successful + ci_failed) × 100%
+- 数据来源审视：确认所有报告数据均有正确的 API 数据来源
+
 ### v0.5.2 (2026-03-20)
 
 - 修复：`report` 命令 HTML/Markdown 报告数据映射问题

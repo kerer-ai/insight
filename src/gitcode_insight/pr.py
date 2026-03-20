@@ -313,6 +313,12 @@ class GitCodePRInsight:
         timely_reviews = len([t for t in review_times if t <= 1440])
         timely_review_rate = timely_reviews / len(review_times) * 100 if review_times else 0
 
+        # CI 成功率：根据标签计算
+        ci_success_count = label_dist.get("ci_successful", 0)
+        ci_failed_count = label_dist.get("ci_failed", 0)
+        ci_total = ci_success_count + ci_failed_count
+        ci_success_rate = round(ci_success_count / ci_total * 100, 2) if ci_total > 0 else 0
+
         return {
             "repo": f"{self.owner}/{self.repo}",
             "analysis_period": f"近 {self.days} 天",
@@ -339,7 +345,8 @@ class GitCodePRInsight:
                 "max_change_lines": max_changes,
                 "large_pr_count": len(large_prs),
                 "large_pr_rate": round(len(large_prs) / total * 100, 2) if total > 0 else 0,
-                "comment_density": round(comment_density, 4)
+                "comment_density": round(comment_density, 4),
+                "ci_success_rate": ci_success_rate
             },
             "distribution": {
                 "by_creator": dict(sorted(creator_dist.items(), key=lambda x: x[1], reverse=True)[:10]),

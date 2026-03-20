@@ -312,7 +312,7 @@ class TestGitCodePRInsight:
                 "removed_lines": 20,
                 "total_changes": 120,
                 "notes_count": 3,
-                "labels": "enhancement",
+                "labels": "enhancement,ci_successful",
                 "assignees": "reviewer1",
                 "testers": "",
                 "merged_by": "",
@@ -341,7 +341,7 @@ class TestGitCodePRInsight:
                 "removed_lines": 10,
                 "total_changes": 60,
                 "notes_count": 2,
-                "labels": "bug",
+                "labels": "bug,ci_failed",
                 "assignees": "reviewer2",
                 "testers": "",
                 "merged_by": "merger1",
@@ -364,6 +364,7 @@ class TestGitCodePRInsight:
         assert result["efficiency"]["avg_first_review_time_minutes"] == 90.0
         assert result["quality"]["avg_change_lines"] == 90.0
         assert result["quality"]["max_change_lines"] == 120
+        assert result["quality"]["ci_success_rate"] == 50.0  # 1 success / (1 success + 1 failed)
 
     def test_calculate_insights_empty(self, temp_output_dir):
         """测试计算洞察指标 - 空数据"""

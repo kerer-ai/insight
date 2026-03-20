@@ -93,14 +93,14 @@ class GitCodeReport:
         print(f"{'='*60}")
 
         # 采集仓库统计数据（包含订阅用户和编程语言）
+        # repo_stats.run() 返回扁平结构：{"download_stats": {...}, "fork_stats": {...}, ...}
         repo_stats_data = self._collect_repo_stats_data()
 
-        # 从 repo_stats 数据中提取统计信息
-        statistics = repo_stats_data.get("statistics", {})
-        download_stats = statistics.get("download_stats", {})
-        fork_stats = statistics.get("fork_stats", {})
-        subscriber_stats = statistics.get("subscriber_stats", {})
-        language_stats = statistics.get("language_stats", {})
+        # 从 repo_stats 数据中提取统计信息（扁平结构）
+        download_stats = repo_stats_data.get("download_stats", {})
+        fork_stats = repo_stats_data.get("fork_stats", {})
+        subscriber_stats = repo_stats_data.get("subscriber_stats", {})
+        language_stats = repo_stats_data.get("language_stats", {})
 
         # 采集 Issue 和 PR 数据
         issue_data = self._collect_issue_data()
@@ -135,16 +135,18 @@ class GitCodeReport:
         subscribers_data = data.get("subscribers", {})
         languages_data = data.get("languages", {})
 
-        # Issue 摘要
-        issue_summary = issue_data.get("summary", {})
-        issue_efficiency = issue_data.get("efficiency", {})
-        issue_trend = issue_data.get("daily_trend", {})
+        # Issue 数据 - 从 statistics 中提取
+        issue_stats = issue_data.get("statistics", {})
+        issue_summary = issue_stats.get("summary", {})
+        issue_efficiency = issue_stats.get("efficiency", {})
+        issue_trend = issue_stats.get("daily_trend", {})
 
-        # PR 摘要
-        pr_summary = pr_data.get("summary", {})
-        pr_efficiency = pr_data.get("efficiency", {})
-        pr_quality = pr_data.get("quality", {})
-        pr_trend = pr_data.get("daily_trend", {})
+        # PR 数据 - 从 statistics 中提取
+        pr_stats = pr_data.get("statistics", {})
+        pr_summary = pr_stats.get("summary", {})
+        pr_efficiency = pr_stats.get("efficiency", {})
+        pr_quality = pr_stats.get("quality", {})
+        pr_trend = pr_stats.get("daily_trend", {})
 
         # 仓库统计
         download_stats = repo_stats_data.get("download_stats", {})
@@ -505,14 +507,16 @@ class GitCodeReport:
         subscribers_data = data.get("subscribers", {})
         languages_data = data.get("languages", {})
 
-        # Issue 摘要
-        issue_summary = issue_data.get("summary", {})
-        issue_efficiency = issue_data.get("efficiency", {})
+        # Issue 数据 - 从 statistics 中提取
+        issue_stats = issue_data.get("statistics", {})
+        issue_summary = issue_stats.get("summary", {})
+        issue_efficiency = issue_stats.get("efficiency", {})
 
-        # PR 摘要
-        pr_summary = pr_data.get("summary", {})
-        pr_efficiency = pr_data.get("efficiency", {})
-        pr_quality = pr_data.get("quality", {})
+        # PR 数据 - 从 statistics 中提取
+        pr_stats = pr_data.get("statistics", {})
+        pr_summary = pr_stats.get("summary", {})
+        pr_efficiency = pr_stats.get("efficiency", {})
+        pr_quality = pr_stats.get("quality", {})
 
         # 仓库统计
         download_stats = repo_stats_data.get("download_stats", {})

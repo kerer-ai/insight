@@ -75,20 +75,14 @@ class TestGitCodeReport:
             )
 
             # Mock 各个采集方法
-            mock_issue_data = {'summary': {'total_issues': 10}}
-            mock_pr_data = {'summary': {'total_prs': 5}}
-            # repo_stats 现在包含订阅用户和编程语言数据
+            mock_issue_data = {'statistics': {'summary': {'total_issues': 10}}, 'raw_data': []}
+            mock_pr_data = {'statistics': {'summary': {'total_prs': 5}}, 'raw_data': []}
+            # repo_stats.run() 返回扁平结构
             mock_repo_stats_data = {
-                'statistics': {
-                    'download_stats': {'period_total': 100},
-                    'fork_stats': {'total': 50},
-                    'subscriber_stats': {'total': 20},
-                    'language_stats': {'primary_language': 'Python'}
-                },
-                'raw_data': {
-                    'fork_list': [],
-                    'subscriber_list': []
-                }
+                'download_stats': {'period_total': 100},
+                'fork_stats': {'total': 50},
+                'subscriber_stats': {'total': 20},
+                'language_stats': {'primary_language': 'Python'}
             }
 
             with patch.object(report, '_collect_issue_data', return_value=mock_issue_data), \
@@ -145,19 +139,25 @@ class TestGitCodeReport:
                 'analysis_time': '2024-01-01 12:00:00',
                 'analysis_period': '近 30 天',
                 'issue': {
-                    'summary': {'total_issues': 10, 'close_rate': 80},
-                    'efficiency': {'avg_first_response_time_minutes': 120},
-                    'daily_trend': {'2024-01-01': {'created': 2, 'closed': 1}}
+                    'statistics': {
+                        'summary': {'total_issues': 10, 'close_rate': 80},
+                        'efficiency': {'avg_first_response_time_minutes': 120},
+                        'daily_trend': {'2024-01-01': {'created': 2, 'closed': 1}}
+                    },
+                    'raw_data': []
                 },
                 'pr': {
-                    'summary': {'total_prs': 5, 'merge_rate': 60},
-                    'efficiency': {'avg_first_review_time_minutes': 60},
-                    'quality': {'avg_change_lines': 100, 'ci_success_rate': 90},
-                    'daily_trend': {'2024-01-01': {'created': 1, 'merged': 1}}
+                    'statistics': {
+                        'summary': {'total_prs': 5, 'merge_rate': 60},
+                        'efficiency': {'avg_first_review_time_minutes': 60},
+                        'quality': {'avg_change_lines': 100, 'ci_success_rate': 90},
+                        'daily_trend': {'2024-01-01': {'created': 1, 'merged': 1}}
+                    },
+                    'raw_data': []
                 },
                 'repo_stats': {
-                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3},
-                    'fork_stats': {'total': 50, 'new_in_period': 5}
+                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'top_days': []},
+                    'fork_stats': {'total': 50, 'new_in_period': 5, 'top_fork_users': []}
                 },
                 'subscribers': {
                     'subscriber_stats': {'total': 100, 'new_in_period': 10}
@@ -179,6 +179,9 @@ class TestGitCodeReport:
             assert 'test_owner/test_repo' in content
             assert 'Issue 分析' in content
             assert 'PR 分析' in content
+            # 验证数据正确映射
+            assert '总 Issue 数' in content
+            assert '10' in content  # total_issues
 
     def test_generate_markdown_report(self):
         """测试生成 Markdown 报告"""
@@ -195,17 +198,23 @@ class TestGitCodeReport:
                 'analysis_time': '2024-01-01 12:00:00',
                 'analysis_period': '近 30 天',
                 'issue': {
-                    'summary': {'total_issues': 10, 'close_rate': 80, 'opened_issues': 2, 'closed_issues': 8},
-                    'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90}
+                    'statistics': {
+                        'summary': {'total_issues': 10, 'close_rate': 80, 'opened_issues': 2, 'closed_issues': 8},
+                        'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90}
+                    },
+                    'raw_data': []
                 },
                 'pr': {
-                    'summary': {'total_prs': 5, 'merge_rate': 60, 'merged_prs': 3},
-                    'efficiency': {'avg_first_review_time_minutes': 60, 'avg_merge_duration_hours': 12},
-                    'quality': {'avg_change_lines': 100, 'large_pr_count': 1, 'ci_success_rate': 90}
+                    'statistics': {
+                        'summary': {'total_prs': 5, 'merge_rate': 60, 'merged_prs': 3},
+                        'efficiency': {'avg_first_review_time_minutes': 60, 'avg_merge_duration_hours': 12},
+                        'quality': {'avg_change_lines': 100, 'large_pr_count': 1, 'ci_success_rate': 90}
+                    },
+                    'raw_data': []
                 },
                 'repo_stats': {
-                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3},
-                    'fork_stats': {'total': 50, 'new_in_period': 5}
+                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'top_days': []},
+                    'fork_stats': {'total': 50, 'new_in_period': 5, 'unique_fork_owners': 45, 'top_fork_users': []}
                 },
                 'subscribers': {
                     'subscriber_stats': {'total': 100, 'new_in_period': 10}
@@ -228,6 +237,9 @@ class TestGitCodeReport:
             assert '## Issue 分析' in content
             assert '## PR 分析' in content
             assert 'Python: 80%' in content
+            # 验证数据正确映射
+            assert '| 总 Issue 数 | 10 |' in content
+            assert '| 总 PR 数 | 5 |' in content
 
     def test_run(self):
         """测试完整执行流程"""
@@ -243,8 +255,8 @@ class TestGitCodeReport:
                 'repo': 'test_owner/test_repo',
                 'analysis_time': '2024-01-01 12:00:00',
                 'analysis_period': '近 30 天',
-                'issue': {'summary': {}, 'efficiency': {}, 'daily_trend': {}},
-                'pr': {'summary': {}, 'efficiency': {}, 'quality': {}, 'daily_trend': {}},
+                'issue': {'statistics': {'summary': {}, 'efficiency': {}, 'daily_trend': {}}, 'raw_data': []},
+                'pr': {'statistics': {'summary': {}, 'efficiency': {}, 'quality': {}, 'daily_trend': {}}, 'raw_data': []},
                 'repo_stats': {'download_stats': {}, 'fork_stats': {}},
                 'subscribers': {'subscriber_stats': {}},
                 'languages': {'language_stats': {'languages': {}}}

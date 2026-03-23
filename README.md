@@ -71,17 +71,32 @@ gc-insight report --repo kernel --owner openeuler --token your_token --days 7
 {
     "access_token": "your_gitcode_access_token",
     "owner": "your_organization_name",
+    "label_ci_success": "ci-pipeline-passed",
+    "label_ci_running": "ci-pipeline-running",
+    "label_yellow_ci_running": "SC-RUNNING",
+    "label_yellow_ci_success": "SC-SUCC",
     "repo_whitelist": ["repo1", "repo2"],
     "repo_blacklist": ["repo3", "repo4"]
 }
 ```
 
+### 必选参数
+
 | 字段 | 说明 |
 |------|------|
-| `access_token` | GitCode API 访问令牌（必填） |
-| `owner` | 组织/社区名称（必填） |
-| `repo_whitelist` | 仓库白名单，仅统计指定仓库 |
-| `repo_blacklist` | 仓库黑名单，排除指定仓库 |
+| `access_token` | GitCode API 访问令牌，用于 API 认证 |
+| `owner` | 组织/社区名称，如 `openeuler`、`boostkit` |
+
+### 可选参数
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| `label_ci_success` | `ci-pipeline-passed` | 蓝区 CI 通过标签名称 |
+| `label_ci_running` | `ci-pipeline-running` | 蓝区 CI 运行中标签名称 |
+| `label_yellow_ci_running` | `SC-RUNNING` | 黄区 CI 运行中标签名称 |
+| `label_yellow_ci_success` | `SC-SUCC` | 黄区 CI 通过标签名称 |
+| `repo_whitelist` | `[]` | 仓库白名单，仅统计指定仓库（与黑名单互斥，优先使用） |
+| `repo_blacklist` | `[]` | 仓库黑名单，排除指定仓库 |
 
 获取 Access Token：GitCode → 设置 → 访问令牌 → 创建新令牌
 

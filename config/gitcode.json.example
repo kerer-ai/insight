@@ -5,6 +5,6 @@
     "label_ci_running": "ci-pipeline-running",
     "label_yellow_ci_running": "SC-RUNNING",
     "label_yellow_ci_success": "SC-SUCC",
-    "repo_whitelist": ["repo1", "repo2"],
-    "repo_blacklist": ["repo3", "repo4"]
+    "repo_whitelist": [],
+    "repo_blacklist": []
 }

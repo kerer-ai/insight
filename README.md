@@ -54,6 +54,31 @@ gc-insight report --repo your-repo --token your_token --days 30
 
 获取 Access Token：GitCode → 设置 → 访问令牌 → 创建新令牌
 
+## 输出产物
+
+所有命令执行后生成三种标准产物，保存在 `./output/` 目录：
+
+| 格式 | 说明 | 用途 |
+|------|------|------|
+| `.json` | 原始数据 + 统计计算数据 | 数据存档、二次开发 |
+| `.md` | Markdown 格式总结报告 | 文档集成、Git 提交 |
+| `.html` | HTML 格式可视化报告 | 浏览器查看、分享展示 |
+
+**示例**：
+
+```
+output/
+├── issue_insight_kvrocks_30d.json    # Issue 数据
+├── issue_insight_kvrocks_30d.md      # Issue Markdown 报告
+├── issue_insight_kvrocks_30d.html    # Issue 可视化报告
+├── pr_insight_kvrocks_30d.json
+├── pr_insight_kvrocks_30d.md
+├── pr_insight_kvrocks_30d.html
+├── report_openeuler_kernel_30d.json
+├── report_openeuler_kernel_30d.md
+└── report_openeuler_kernel_30d.html
+```
+
 ## 常见问题
 
 **Q: 输出文件在哪里？**

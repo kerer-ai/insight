@@ -4,9 +4,60 @@
 提供统一的请求重试、限流处理等功能
 """
 
+import json
+import os
+import sys
 import time
 from typing import Optional, Dict, Any
 import requests
+
+
+def load_config(config_file: str) -> dict:
+    """
+    加载并验证配置文件
+
+    Args:
+        config_file: 配置文件路径
+
+    Returns:
+        配置字典
+
+    Raises:
+        SystemExit: 配置文件不存在、格式错误或必填项缺失时退出程序
+    """
+    # 检查配置文件是否存在
+    if not os.path.exists(config_file):
+        print(f"错误: 配置文件不存在")
+        print(f"  路径: {config_file}")
+        print(f"  请创建配置文件: cp config/gitcode.json.example config/gitcode.json")
+        sys.exit(1)
+
+    # 尝试解析 JSON 文件
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"错误: 配置文件格式错误")
+        print(f"  路径: {config_file}")
+        print(f"  详情: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"错误: 无法读取配置文件")
+        print(f"  路径: {config_file}")
+        print(f"  详情: {e}")
+        sys.exit(1)
+
+    # 验证必填项
+    required_fields = ["access_token", "owner"]
+    missing_fields = [field for field in required_fields if not config.get(field)]
+
+    if missing_fields:
+        print(f"错误: 配置文件缺少必填项")
+        print(f"  路径: {config_file}")
+        print(f"  缺失字段: {', '.join(missing_fields)}")
+        sys.exit(1)
+
+    return config
 
 
 def request_with_retry(

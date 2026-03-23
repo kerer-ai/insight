@@ -5,7 +5,6 @@ GitCode Insight 命令行入口
 
 import argparse
 import os
-import json
 
 from .community import GitCodeCommunityStats
 from .issue import GitCodeIssueInsight
@@ -13,6 +12,7 @@ from .pr import GitCodePRInsight
 from .dashboard import generate_dashboard
 from .repo_stats import GitCodeRepoStats
 from .report import GitCodeReport
+from .utils import load_config
 
 
 def get_config_owner(config_file):
@@ -20,11 +20,11 @@ def get_config_owner(config_file):
     if config_file is None:
         config_file = os.path.join(os.getcwd(), "config", "gitcode.json")
 
-    if os.path.exists(config_file):
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            return config.get("owner", "")
-    return ""
+    try:
+        config = load_config(config_file)
+        return config.get("owner", "")
+    except SystemExit:
+        return ""
 
 
 def cmd_community(args):

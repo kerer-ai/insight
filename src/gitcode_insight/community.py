@@ -12,7 +12,7 @@ import csv
 import os
 import requests
 
-from .utils import request_with_retry
+from .utils import request_with_retry, load_config
 
 
 class GitCodeCommunityStats:
@@ -36,9 +36,8 @@ class GitCodeCommunityStats:
 
         self.output_dir = output_dir
 
-        # 读取配置文件
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
+        # 读取并验证配置文件
+        config = load_config(config_file)
 
         self.base_url = "https://api.gitcode.com/api/v5"
         self.headers = {

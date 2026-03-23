@@ -2,8 +2,11 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/gitcode-insight.svg)](https://pypi.org/project/gitcode-insight/)
 
 GitCode 平台代码洞察命令行工具，支持社区洞察、Issue/PR 分析、仓库统计，生成可视化报告。
+
+**PyPI**: https://pypi.org/project/gitcode-insight/
 
 ## 功能
 

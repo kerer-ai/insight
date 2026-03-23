@@ -20,20 +20,39 @@ GitCode 平台代码洞察命令行工具，支持社区洞察、Issue/PR 分析
 
 ## 快速开始
 
-```bash
-# 安装
-pip install gitcode-insight
+### 从 PyPI 安装
 
-# 或从源码安装
+```bash
+pip install gitcode-insight
+```
+
+### 从源码安装（推荐开发使用）
+
+```bash
+# 克隆仓库
 git clone https://gitcode.com/gitcode-cli/insight.git
 cd insight
+
+# 创建虚拟环境
 python3 -m venv .venv
-.venv/bin/pip install -e ".[test]"
+
+# 激活虚拟环境
+# Linux/macOS:
+source .venv/bin/activate
+# Windows:
+# .venv\Scripts\activate
+
+# 安装（开发模式，包含测试依赖）
+pip install -e ".[test]"
 
 # 创建配置文件
 cp config/gitcode.json.example config/gitcode.json
 # 编辑配置文件，填入 access_token 和 owner
+```
 
+### 使用示例
+
+```bash
 # 生成社区看板
 gc-insight dashboard
 

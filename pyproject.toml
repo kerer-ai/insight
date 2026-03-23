@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitcode-insight"
-version = "0.1.0"
+version = "0.1.1"
 description = "GitCode 平台代码洞察工具"
 readme = "README.md"
 license = "MIT"

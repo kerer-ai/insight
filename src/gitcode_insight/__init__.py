@@ -3,7 +3,7 @@
 GitCode Insight - GitCode 平台代码洞察工具
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "GitCode Insight Team"
 
 from .community import GitCodeCommunityStats

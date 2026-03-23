@@ -57,10 +57,10 @@ cp config/gitcode.json.example config/gitcode.json
 gc-insight dashboard
 
 # 分析单个仓库
-gc-insight issue --repo your-repo --token your_token --days 30
-gc-insight pr --repo your-repo --token your_token --days 30
-gc-insight repo-stats --repo your-repo --token your_token --days 30
-gc-insight report --repo your-repo --token your_token --days 30
+gc-insight issue --repo kernel --owner openeuler --token your_token --days 7
+gc-insight pr --repo kernel --owner openeuler --token your_token --days 7
+gc-insight repo-stats --repo kernel --owner openeuler --token your_token --days 7
+gc-insight report --repo kernel --owner openeuler --token your_token --days 7
 ```
 
 ## 配置

@@ -112,6 +112,21 @@ A: GitCode API 每分钟限制 100 次请求，工具已内置限流处理。如
 **Q: CSV 文件中文乱码？**
 A: 文件使用 UTF-8-BOM 编码，Excel 可正常打开。
 
+**Q: 安装时报错 `externally-managed-environment`？**
+A: 这是 Debian/Ubuntu 系统（Python 3.11+）的保护机制，防止破坏系统 Python 环境。请使用虚拟环境安装：
+
+```bash
+# 创建虚拟环境
+python3 -m venv .venv
+
+# 激活虚拟环境
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+
+# 安装
+pip install gitcode-insight
+```
+
 ## 文档
 
 - [用户指南](doc/user_guide.md) - 详细的安装配置和命令说明

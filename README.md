@@ -70,9 +70,18 @@ gc-insight report --repo kernel --owner openeuler --token your_token --days 7
 ```json
 {
     "access_token": "your_gitcode_access_token",
-    "owner": "your_organization_name"
+    "owner": "your_organization_name",
+    "repo_whitelist": ["repo1", "repo2"],
+    "repo_blacklist": ["repo3", "repo4"]
 }
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `access_token` | GitCode API 访问令牌（必填） |
+| `owner` | 组织/社区名称（必填） |
+| `repo_whitelist` | 仓库白名单，仅统计指定仓库 |
+| `repo_blacklist` | 仓库黑名单，排除指定仓库 |
 
 获取 Access Token：GitCode → 设置 → 访问令牌 → 创建新令牌
 

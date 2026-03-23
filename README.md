@@ -70,6 +70,7 @@ A: 文件使用 UTF-8-BOM 编码，Excel 可正常打开。
 - [用户指南](doc/user_guide.md) - 详细的安装配置和命令说明
 - [开发指南](doc/development.md) - 本地开发和测试
 - [贡献指南](CONTRIBUTING.md) - 参与项目贡献
+- [发布流程](doc/release.md) - PyPI 发布说明
 - [API 文档](doc/gitcode_api/) - GitCode API 接口说明
 
 ## 许可证

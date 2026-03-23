@@ -12,7 +12,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/kerer-ai/insight.git
+git clone https://gitcode.com/gitcode-cli/insight.git
 cd insight
 
 # 创建虚拟环境

@@ -37,8 +37,8 @@ test = [
 gc-insight = "gitcode_insight.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/example/gitcode-insight"
-Repository = "https://github.com/example/gitcode-insight"
+Homepage = "https://gitcode.com/gitcode-cli/insight"
+Repository = "https://gitcode.com/gitcode-cli/insight"
 
 [tool.setuptools.packages.find]
 where = ["src"]

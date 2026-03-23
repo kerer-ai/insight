@@ -22,7 +22,7 @@ GitCode 平台代码洞察命令行工具，支持社区洞察、Issue/PR 分析
 pip install gitcode-insight
 
 # 或从源码安装
-git clone https://github.com/kerer-ai/insight.git
+git clone https://gitcode.com/gitcode-cli/insight.git
 cd insight
 python3 -m venv .venv
 .venv/bin/pip install -e ".[test]"

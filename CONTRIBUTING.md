@@ -24,7 +24,7 @@
 
 ### 报告问题
 
-1. 在 [Issues](https://github.com/kerer-ai/insight/issues) 中搜索是否已有相同问题
+1. 在 [Issues](https://gitcode.com/gitcode-cli/insight/issues) 中搜索是否已有相同问题
 2. 如果没有，创建新 Issue，包含：
    - 清晰的标题和描述
    - 复现步骤（如适用）
@@ -493,7 +493,7 @@ feat(issue): 添加 --range-by 参数
 
 ```bash
 # 克隆仓库
-git clone https://github.com/kerer-ai/insight.git
+git clone https://gitcode.com/gitcode-cli/insight.git
 cd insight
 
 # 创建虚拟环境
@@ -515,7 +515,7 @@ cp config/gitcode.json.example config/gitcode.json
 
 ## 获取帮助
 
-- 提交 Issue：https://github.com/kerer-ai/insight/issues
+- 提交 Issue：https://gitcode.com/gitcode-cli/insight/issues
 - 阅读文档：`doc/` 目录
 
 ---

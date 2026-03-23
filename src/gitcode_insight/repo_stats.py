@@ -40,7 +40,6 @@ class GitCodeRepoStats:
         self.output_dir = output_dir
 
         self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
 
         # 计算时间范围
         self.end_date = datetime.now().strftime("%Y-%m-%d")

@@ -40,9 +40,6 @@ class GitCodeCommunityStats:
         config = load_config(config_file)
 
         self.base_url = "https://api.gitcode.com/api/v5"
-        self.headers = {
-            "Content-Type": "application/json"
-        }
         self.access_token = config.get("access_token", "")
         self.label_ci_success = config.get("label_ci_success", "ci-pipeline-passed")
         self.label_ci_running = config.get("label_ci_running", "ci-pipeline-running")
@@ -53,7 +50,6 @@ class GitCodeCommunityStats:
         self.repo_blacklist = self._normalize_repo_list(config.get("repo_blacklist"))
 
         self.session = requests.Session()
-        self.session.headers.update(self.headers)
 
     @staticmethod
     def _normalize_repo_list(value) -> List[str]:

@@ -40,7 +40,6 @@ class GitCodePRInsight:
         self.output_dir = output_dir
 
         self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
 
         # 计算时间范围
         self.since_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()

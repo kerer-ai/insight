@@ -140,27 +140,29 @@ class TestGitCodeReport:
                 'analysis_period': '近 30 天',
                 'issue': {
                     'statistics': {
-                        'summary': {'total_issues': 10, 'close_rate': 80},
-                        'efficiency': {'avg_first_response_time_minutes': 120},
+                        'summary': {'total_issues': 10, 'close_rate': 80, 'opened_issues': 2, 'closed_issues': 8},
+                        'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90, 'response_time_samples': 8, 'close_duration_samples': 6},
+                        'distribution': {'by_label': {'bug': 5, 'feature': 3}, 'by_creator': {'user1': 4, 'user2': 3}},
                         'daily_trend': {'2024-01-01': {'created': 2, 'closed': 1}}
                     },
                     'raw_data': []
                 },
                 'pr': {
                     'statistics': {
-                        'summary': {'total_prs': 5, 'merge_rate': 60},
-                        'efficiency': {'avg_first_review_time_minutes': 60},
-                        'quality': {'avg_change_lines': 100, 'ci_success_rate': 90},
+                        'summary': {'total_prs': 5, 'merge_rate': 60, 'opened_prs': 1, 'merged_prs': 3, 'closed_prs': 1, 'conflict_rate': 10},
+                        'efficiency': {'avg_first_review_time_minutes': 60, 'avg_merge_duration_hours': 12, 'min_merge_duration_hours': 2, 'max_merge_duration_hours': 48, 'timely_review_rate': 80, 'review_time_samples': 4, 'merge_duration_samples': 3},
+                        'quality': {'avg_change_lines': 100, 'max_change_lines': 500, 'large_pr_count': 1, 'large_pr_rate': 20, 'comment_density': 0.05, 'ci_success_rate': 90},
+                        'distribution': {'by_creator': {'dev1': 2, 'dev2': 2}, 'by_target_branch': {'main': 4, 'develop': 1}, 'by_reviewer': {'reviewer1': 3}},
                         'daily_trend': {'2024-01-01': {'created': 1, 'merged': 1}}
                     },
                     'raw_data': []
                 },
                 'repo_stats': {
-                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'top_days': []},
-                    'fork_stats': {'total': 50, 'new_in_period': 5, 'top_fork_users': []}
+                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'peak_date': '2024-01-15', 'peak_count': 100, 'active_days': 25, 'active_days_rate': 83.3, 'trend': 'up', 'top_days': [{'date': '2024-01-15', 'count': 100, 'total': 4500}]},
+                    'fork_stats': {'total': 50, 'new_in_period': 5, 'unique_fork_owners': 45, 'personal_forks': 40, 'organization_forks': 10, 'top_fork_users': [{'owner': 'user1', 'count': 2, 'latest_created_at': '2024-01-20'}], 'latest_forks': [{'owner': 'user2', 'namespace_type': 'personal', 'created_at': '2024-01-25'}]}
                 },
                 'subscribers': {
-                    'subscriber_stats': {'total': 100, 'new_in_period': 10}
+                    'subscriber_stats': {'total': 100, 'new_in_period': 10, 'latest_subscribers': [{'login': 'sub1', 'name': 'Subscriber 1', 'watch_at': '2024-01-25'}]}
                 },
                 'languages': {
                     'language_stats': {'total_languages': 3, 'primary_language': 'Python', 'languages': {'Python': 80, 'JavaScript': 15, 'Shell': 5}}
@@ -182,6 +184,22 @@ class TestGitCodeReport:
             # 验证数据正确映射
             assert '总 Issue 数' in content
             assert '10' in content  # total_issues
+            # 验证新增字段
+            assert 'Issue 分布分析' in content
+            assert 'PR 分布分析' in content
+            assert '冲突率' in content
+            assert '最短合并' in content
+            assert '最长合并' in content
+            assert '24h评审率' in content
+            assert '最大变更行' in content
+            assert '大PR占比' in content
+            assert '评论密度' in content
+            assert '下载峰值日' in content
+            assert '下载趋势' in content
+            assert '个人 Fork' in content
+            assert '组织 Fork' in content
+            assert '最新 Fork 信息' in content
+            assert '最新订阅用户' in content
 
     def test_generate_markdown_report(self):
         """测试生成 Markdown 报告"""
@@ -200,24 +218,26 @@ class TestGitCodeReport:
                 'issue': {
                     'statistics': {
                         'summary': {'total_issues': 10, 'close_rate': 80, 'opened_issues': 2, 'closed_issues': 8},
-                        'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90}
+                        'efficiency': {'avg_first_response_time_minutes': 120, 'avg_close_duration_hours': 24, 'timely_response_rate': 90, 'response_time_samples': 8, 'close_duration_samples': 6},
+                        'distribution': {'by_label': {'bug': 5, 'feature': 3}, 'by_creator': {'user1': 4, 'user2': 3}}
                     },
                     'raw_data': []
                 },
                 'pr': {
                     'statistics': {
-                        'summary': {'total_prs': 5, 'merge_rate': 60, 'merged_prs': 3},
-                        'efficiency': {'avg_first_review_time_minutes': 60, 'avg_merge_duration_hours': 12},
-                        'quality': {'avg_change_lines': 100, 'large_pr_count': 1, 'ci_success_rate': 90}
+                        'summary': {'total_prs': 5, 'merge_rate': 60, 'merged_prs': 3, 'opened_prs': 1, 'closed_prs': 1, 'conflict_rate': 10},
+                        'efficiency': {'avg_first_review_time_minutes': 60, 'avg_merge_duration_hours': 12, 'min_merge_duration_hours': 2, 'max_merge_duration_hours': 48, 'timely_review_rate': 80, 'review_time_samples': 4, 'merge_duration_samples': 3},
+                        'quality': {'avg_change_lines': 100, 'max_change_lines': 500, 'large_pr_count': 1, 'large_pr_rate': 20, 'comment_density': 0.05, 'ci_success_rate': 90},
+                        'distribution': {'by_creator': {'dev1': 2, 'dev2': 2}, 'by_target_branch': {'main': 4, 'develop': 1}, 'by_reviewer': {'reviewer1': 3}}
                     },
                     'raw_data': []
                 },
                 'repo_stats': {
-                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'top_days': []},
-                    'fork_stats': {'total': 50, 'new_in_period': 5, 'unique_fork_owners': 45, 'top_fork_users': []}
+                    'download_stats': {'period_total': 1000, 'history_total': 5000, 'daily_average': 33.3, 'peak_date': '2024-01-15', 'peak_count': 100, 'active_days': 25, 'active_days_rate': 83.3, 'trend': 'up', 'top_days': []},
+                    'fork_stats': {'total': 50, 'new_in_period': 5, 'unique_fork_owners': 45, 'personal_forks': 40, 'organization_forks': 10, 'top_fork_users': [], 'latest_forks': []}
                 },
                 'subscribers': {
-                    'subscriber_stats': {'total': 100, 'new_in_period': 10}
+                    'subscriber_stats': {'total': 100, 'new_in_period': 10, 'latest_subscribers': []}
                 },
                 'languages': {
                     'language_stats': {'total_languages': 3, 'primary_language': 'Python', 'languages': {'Python': 80, 'JavaScript': 15, 'Shell': 5}}
@@ -240,6 +260,22 @@ class TestGitCodeReport:
             # 验证数据正确映射
             assert '| 总 Issue 数 | 10 |' in content
             assert '| 总 PR 数 | 5 |' in content
+            # 验证新增字段
+            assert '### 标签分布' in content
+            assert '### 创建人分布' in content
+            assert '冲突率' in content
+            assert '最短合并耗时' in content
+            assert '最长合并耗时' in content
+            assert '24小时评审率' in content
+            assert '最大变更行数' in content
+            assert '大 PR 占比' in content
+            assert '评论密度' in content
+            assert '下载峰值日' in content
+            assert '下载趋势' in content
+            assert '个人 Fork 数' in content
+            assert '组织 Fork 数' in content
+            assert '最新 Fork 信息' in content
+            assert '最新订阅用户' in content
 
     def test_run(self):
         """测试完整执行流程"""
@@ -255,8 +291,8 @@ class TestGitCodeReport:
                 'repo': 'test_owner/test_repo',
                 'analysis_time': '2024-01-01 12:00:00',
                 'analysis_period': '近 30 天',
-                'issue': {'statistics': {'summary': {}, 'efficiency': {}, 'daily_trend': {}}, 'raw_data': []},
-                'pr': {'statistics': {'summary': {}, 'efficiency': {}, 'quality': {}, 'daily_trend': {}}, 'raw_data': []},
+                'issue': {'statistics': {'summary': {}, 'efficiency': {}, 'distribution': {}, 'daily_trend': {}}, 'raw_data': []},
+                'pr': {'statistics': {'summary': {}, 'efficiency': {}, 'quality': {}, 'distribution': {}, 'daily_trend': {}}, 'raw_data': []},
                 'repo_stats': {'download_stats': {}, 'fork_stats': {}},
                 'subscribers': {'subscriber_stats': {}},
                 'languages': {'language_stats': {'languages': {}}}

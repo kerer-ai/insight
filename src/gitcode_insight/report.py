@@ -139,6 +139,7 @@ class GitCodeReport:
         issue_stats = issue_data.get("statistics", {})
         issue_summary = issue_stats.get("summary", {})
         issue_efficiency = issue_stats.get("efficiency", {})
+        issue_distribution = issue_stats.get("distribution", {})
         issue_trend = issue_stats.get("daily_trend", {})
 
         # PR 数据 - 从 statistics 中提取
@@ -146,6 +147,7 @@ class GitCodeReport:
         pr_summary = pr_stats.get("summary", {})
         pr_efficiency = pr_stats.get("efficiency", {})
         pr_quality = pr_stats.get("quality", {})
+        pr_distribution = pr_stats.get("distribution", {})
         pr_trend = pr_stats.get("daily_trend", {})
 
         # 仓库统计
@@ -172,6 +174,15 @@ class GitCodeReport:
         top_download_days = download_stats.get("top_days", [])
         top_fork_users = fork_stats.get("top_fork_users", [])
 
+        # Issue 分布数据
+        issue_by_label = issue_distribution.get("by_label", {})
+        issue_by_creator = issue_distribution.get("by_creator", {})
+
+        # PR 分布数据
+        pr_by_creator = pr_distribution.get("by_creator", {})
+        pr_by_target_branch = pr_distribution.get("by_target_branch", {})
+        pr_by_reviewer = pr_distribution.get("by_reviewer", {})
+
         top_download_rows = "".join(
             [
                 f"<tr><td>{item.get('date', '-')}</td><td>{item.get('count', 0)}</td><td>{item.get('total', 0):,}</td></tr>"
@@ -184,6 +195,43 @@ class GitCodeReport:
                 for item in top_fork_users[:10]
             ]
         )
+
+        # Issue 分布表格行
+        issue_label_rows = "".join(
+            [f"<tr><td>{label}</td><td>{count}</td></tr>" for label, count in list(issue_by_label.items())[:10]]
+        )
+        issue_creator_rows = "".join(
+            [f"<tr><td>{creator}</td><td>{count}</td></tr>" for creator, count in list(issue_by_creator.items())[:10]]
+        )
+
+        # PR 分布表格行
+        pr_creator_rows = "".join(
+            [f"<tr><td>{creator}</td><td>{count}</td></tr>" for creator, count in list(pr_by_creator.items())[:10]]
+        )
+        pr_branch_rows = "".join(
+            [f"<tr><td>{branch}</td><td>{count}</td></tr>" for branch, count in list(pr_by_target_branch.items())[:10]]
+        )
+        pr_reviewer_rows = "".join(
+            [f"<tr><td>{reviewer}</td><td>{count}</td></tr>" for reviewer, count in list(pr_by_reviewer.items())[:10]]
+        )
+
+        # 最新订阅用户列表
+        latest_subscribers = subscriber_stats.get("latest_subscribers", [])
+        latest_subscriber_rows = "".join(
+            [f"<tr><td>{s.get('login', '-')}</td><td>{s.get('name', '-')}</td><td>{s.get('watch_at', '-')[:10]}</td></tr>"
+             for s in latest_subscribers[:10]]
+        )
+
+        # 最新 Fork 信息
+        latest_forks = fork_stats.get("latest_forks", [])
+        latest_fork_rows = "".join(
+            [f"<tr><td>{f.get('owner', '-')}</td><td>{f.get('namespace_type', '-')}</td><td>{f.get('created_at', '-')[:10]}</td></tr>"
+             for f in latest_forks[:10]]
+        )
+
+        # 下载趋势显示文本
+        trend_map = {"up": "上升", "down": "下降", "flat": "平稳"}
+        download_trend_text = trend_map.get(download_stats.get("trend", "flat"), "平稳")
 
         html_content = f'''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -214,7 +262,12 @@ class GitCodeReport:
         .chart-title {{ font-size: 14px; font-weight: bold; color: #1a365d; margin-bottom: 15px; }}
         .footer {{ text-align: center; color: #64748b; padding: 20px; font-size: 12px; }}
         .two-col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }}
-        @media (max-width: 900px) {{ .two-col {{ grid-template-columns: 1fr; }} }}
+        .three-col {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+        th, td {{ border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }}
+        th {{ background: #f1f5f9; color: #334155; }}
+        .sample-info {{ color: #64748b; font-size: 12px; margin-top: 10px; }}
+        @media (max-width: 900px) {{ .two-col {{ grid-template-columns: 1fr; }} .three-col {{ grid-template-columns: 1fr; }} }}
     </style>
 </head>
 <body>
@@ -269,6 +322,10 @@ class GitCodeReport:
                     <div class="stat-label">已关闭</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value">{issue_summary.get("close_rate", 0)}%</div>
+                    <div class="stat-label">关闭率</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value">{issue_efficiency.get("avg_first_response_time_minutes", 0):.1f}</div>
                     <div class="stat-label">平均响应(分钟)</div>
                 </div>
@@ -281,7 +338,30 @@ class GitCodeReport:
                     <div class="stat-label">24h响应率</div>
                 </div>
             </div>
-            <div class="charts-grid">
+            <div class="sample-info">
+                样本数: 响应时间 {issue_efficiency.get("response_time_samples", 0)} 条, 关闭耗时 {issue_efficiency.get("close_duration_samples", 0)} 条
+            </div>
+
+            <!-- Issue 分布分析 -->
+            <div class="section-title" style="margin-top: 25px;">Issue 分布分析</div>
+            <div class="two-col">
+                <div class="chart-box">
+                    <div class="chart-title">标签分布 Top 10</div>
+                    <table>
+                        <thead><tr><th>标签</th><th>数量</th></tr></thead>
+                        <tbody>{issue_label_rows if issue_label_rows else '<tr><td colspan="2" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">创建人分布 Top 10</div>
+                    <table>
+                        <thead><tr><th>创建人</th><th>数量</th></tr></thead>
+                        <tbody>{issue_creator_rows if issue_creator_rows else '<tr><td colspan="2" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="charts-grid" style="margin-top: 20px;">
                 <div class="chart-box">
                     <div class="chart-title">Issue 每日趋势</div>
                     <canvas id="issueTrendChart"></canvas>
@@ -292,19 +372,38 @@ class GitCodeReport:
         <!-- PR 分析 -->
         <div class="section">
             <div class="section-title">PR 分析</div>
+
+            <!-- PR 概览统计 -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value">{pr_summary.get("total_prs", 0)}</div>
                     <div class="stat-label">总 PR 数</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value">{pr_summary.get("opened_prs", 0)}</div>
+                    <div class="stat-label">打开中</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value">{pr_summary.get("merged_prs", 0)}</div>
                     <div class="stat-label">已合并</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_summary.get("closed_prs", 0)}</div>
+                    <div class="stat-label">已关闭(未合并)</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{pr_summary.get("merge_rate", 0)}%</div>
                     <div class="stat-label">合并率</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_summary.get("conflict_rate", 0)}%</div>
+                    <div class="stat-label">冲突率</div>
+                </div>
+            </div>
+
+            <!-- PR 效率指标 -->
+            <div class="section-title" style="margin-top: 25px;">效率指标</div>
+            <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value">{pr_efficiency.get("avg_first_review_time_minutes", 0):.1f}</div>
                     <div class="stat-label">平均评审(分钟)</div>
@@ -314,15 +413,78 @@ class GitCodeReport:
                     <div class="stat-label">平均合并(小时)</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value">{pr_efficiency.get("min_merge_duration_hours", 0):.1f}</div>
+                    <div class="stat-label">最短合并(小时)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_efficiency.get("max_merge_duration_hours", 0):.1f}</div>
+                    <div class="stat-label">最长合并(小时)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_efficiency.get("timely_review_rate", 0)}%</div>
+                    <div class="stat-label">24h评审率</div>
+                </div>
+            </div>
+            <div class="sample-info">
+                样本数: 评审时间 {pr_efficiency.get("review_time_samples", 0)} 条, 合并耗时 {pr_efficiency.get("merge_duration_samples", 0)} 条
+            </div>
+
+            <!-- PR 质量指标 -->
+            <div class="section-title" style="margin-top: 25px;">质量指标</div>
+            <div class="stats-grid">
+                <div class="stat-card">
                     <div class="stat-value">{pr_quality.get("avg_change_lines", 0):.0f}</div>
                     <div class="stat-label">平均变更行</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_quality.get("max_change_lines", 0)}</div>
+                    <div class="stat-label">最大变更行</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_quality.get("large_pr_count", 0)}</div>
+                    <div class="stat-label">大PR数(>500行)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_quality.get("large_pr_rate", 0)}%</div>
+                    <div class="stat-label">大PR占比</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{pr_quality.get("comment_density", 0):.4f}</div>
+                    <div class="stat-label">评论密度</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">{pr_quality.get("ci_success_rate", 0)}%</div>
                     <div class="stat-label">CI成功率</div>
                 </div>
             </div>
-            <div class="charts-grid">
+
+            <!-- PR 分布分析 -->
+            <div class="section-title" style="margin-top: 25px;">PR 分布分析</div>
+            <div class="three-col">
+                <div class="chart-box">
+                    <div class="chart-title">创建者分布 Top 10</div>
+                    <table>
+                        <thead><tr><th>创建者</th><th>数量</th></tr></thead>
+                        <tbody>{pr_creator_rows if pr_creator_rows else '<tr><td colspan="2" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">目标分支分布</div>
+                    <table>
+                        <thead><tr><th>分支</th><th>数量</th></tr></thead>
+                        <tbody>{pr_branch_rows if pr_branch_rows else '<tr><td colspan="2" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">评审者分布 Top 10</div>
+                    <table>
+                        <thead><tr><th>评审者</th><th>数量</th></tr></thead>
+                        <tbody>{pr_reviewer_rows if pr_reviewer_rows else '<tr><td colspan="2" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="charts-grid" style="margin-top: 20px;">
                 <div class="chart-box">
                     <div class="chart-title">PR 每日趋势</div>
                     <canvas id="prTrendChart"></canvas>
@@ -330,81 +492,132 @@ class GitCodeReport:
             </div>
         </div>
 
-        <!-- 仓库统计 & 社区活跃 -->
-        <div class="two-col">
-            <div class="section">
-                <div class="section-title">仓库统计</div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">{download_stats.get("period_total", 0)}</div>
-                        <div class="stat-label">期间下载量</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{download_stats.get("history_total", 0):,}</div>
-                        <div class="stat-label">历史总下载</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{download_stats.get("daily_average", 0):.1f}</div>
-                        <div class="stat-label">日均下载</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{fork_stats.get("total", 0)}</div>
-                        <div class="stat-label">Fork 总数</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{fork_stats.get("new_in_period", 0)}</div>
-                        <div class="stat-label">新增 Fork</div>
-                    </div>
+        <!-- 仓库统计 -->
+        <div class="section">
+            <div class="section-title">仓库统计</div>
+
+            <!-- 下载统计 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("period_total", 0)}</div>
+                    <div class="stat-label">期间下载量</div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">下载峰值 Top 10</div>
-                    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
-                        <thead>
-                            <tr style="background:#eef2ff;">
-                                <th style="padding:8px; border:1px solid #e2e8f0;">日期</th>
-                                <th style="padding:8px; border:1px solid #e2e8f0;">当日下载</th>
-                                <th style="padding:8px; border:1px solid #e2e8f0;">截止当日累计</th>
-                            </tr>
-                        </thead>
-                        <tbody>{top_download_rows}</tbody>
-                    </table>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("history_total", 0):,}</div>
+                    <div class="stat-label">历史总下载</div>
                 </div>
-                <div class="chart-box" style="margin-top: 15px;">
-                    <div class="chart-title">Fork 人员 Top 10</div>
-                    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
-                        <thead>
-                            <tr style="background:#eef2ff;">
-                                <th style="padding:8px; border:1px solid #e2e8f0;">用户</th>
-                                <th style="padding:8px; border:1px solid #e2e8f0;">Fork 数</th>
-                                <th style="padding:8px; border:1px solid #e2e8f0;">最新 Fork 时间</th>
-                            </tr>
-                        </thead>
-                        <tbody>{top_fork_user_rows}</tbody>
-                    </table>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("daily_average", 0):.1f}</div>
+                    <div class="stat-label">日均下载</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("peak_date", "-")}</div>
+                    <div class="stat-label">下载峰值日</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("peak_count", 0)}</div>
+                    <div class="stat-label">峰值下载量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("active_days", 0)}</div>
+                    <div class="stat-label">活跃下载天数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{download_stats.get("active_days_rate", 0)}%</div>
+                    <div class="stat-label">活跃率</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{download_trend_text}</div>
+                    <div class="stat-label">下载趋势</div>
                 </div>
             </div>
 
-            <div class="section">
-                <div class="section-title">社区活跃</div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">{subscriber_stats.get("total", 0)}</div>
-                        <div class="stat-label">订阅用户</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{subscriber_stats.get("new_in_period", 0)}</div>
-                        <div class="stat-label">新增订阅</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{language_stats.get("total_languages", 0)}</div>
-                        <div class="stat-label">语言种类</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{language_stats.get("primary_language", "-")}</div>
-                        <div class="stat-label">主要语言</div>
-                    </div>
+            <div class="chart-box" style="margin-top: 20px;">
+                <div class="chart-title">下载峰值 Top 10</div>
+                <table>
+                    <thead>
+                        <tr><th>日期</th><th>当日下载</th><th>截止当日累计</th></tr>
+                    </thead>
+                    <tbody>{top_download_rows if top_download_rows else '<tr><td colspan="3" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                </table>
+            </div>
+
+            <!-- Fork 统计 -->
+            <div class="section-title" style="margin-top: 25px;">Fork 统计</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{fork_stats.get("total", 0)}</div>
+                    <div class="stat-label">Fork 总数</div>
                 </div>
-                <div class="chart-box" style="margin-top: 15px;">
+                <div class="stat-card">
+                    <div class="stat-value">{fork_stats.get("new_in_period", 0)}</div>
+                    <div class="stat-label">新增 Fork</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{fork_stats.get("unique_fork_owners", 0)}</div>
+                    <div class="stat-label">Fork 人员数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{fork_stats.get("personal_forks", 0)}</div>
+                    <div class="stat-label">个人 Fork</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{fork_stats.get("organization_forks", 0)}</div>
+                    <div class="stat-label">组织 Fork</div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top: 20px;">
+                <div class="chart-box">
+                    <div class="chart-title">Fork 人员 Top 10</div>
+                    <table>
+                        <thead><tr><th>用户</th><th>Fork 数</th><th>最新 Fork 时间</th></tr></thead>
+                        <tbody>{top_fork_user_rows if top_fork_user_rows else '<tr><td colspan="3" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">最新 Fork 信息</div>
+                    <table>
+                        <thead><tr><th>用户</th><th>类型</th><th>创建时间</th></tr></thead>
+                        <tbody>{latest_fork_rows if latest_fork_rows else '<tr><td colspan="3" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 社区活跃 -->
+        <div class="section">
+            <div class="section-title">社区活跃</div>
+
+            <!-- 订阅用户 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{subscriber_stats.get("total", 0)}</div>
+                    <div class="stat-label">订阅用户</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{subscriber_stats.get("new_in_period", 0)}</div>
+                    <div class="stat-label">新增订阅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{language_stats.get("total_languages", 0)}</div>
+                    <div class="stat-label">语言种类</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{language_stats.get("primary_language", "-")}</div>
+                    <div class="stat-label">主要语言</div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top: 20px;">
+                <div class="chart-box">
+                    <div class="chart-title">最新订阅用户</div>
+                    <table>
+                        <thead><tr><th>用户</th><th>名称</th><th>订阅时间</th></tr></thead>
+                        <tbody>{latest_subscriber_rows if latest_subscriber_rows else '<tr><td colspan="3" style="text-align:center;color:#64748b;">暂无数据</td></tr>'}</tbody>
+                    </table>
+                </div>
+                <div class="chart-box">
                     <div class="chart-title">编程语言分布</div>
                     <canvas id="languageChart"></canvas>
                 </div>
@@ -511,12 +724,14 @@ class GitCodeReport:
         issue_stats = issue_data.get("statistics", {})
         issue_summary = issue_stats.get("summary", {})
         issue_efficiency = issue_stats.get("efficiency", {})
+        issue_distribution = issue_stats.get("distribution", {})
 
         # PR 数据 - 从 statistics 中提取
         pr_stats = pr_data.get("statistics", {})
         pr_summary = pr_stats.get("summary", {})
         pr_efficiency = pr_stats.get("efficiency", {})
         pr_quality = pr_stats.get("quality", {})
+        pr_distribution = pr_stats.get("distribution", {})
 
         # 仓库统计
         download_stats = repo_stats_data.get("download_stats", {})
@@ -527,6 +742,10 @@ class GitCodeReport:
 
         # 编程语言
         language_stats = languages_data.get("language_stats", {})
+
+        # 下载趋势显示文本
+        trend_map = {"up": "上升", "down": "下降", "flat": "平稳"}
+        download_trend_text = trend_map.get(download_stats.get("trend", "flat"), "平稳")
 
         md_content = f'''# 仓库综合报告 - {data["repo"]}
 
@@ -545,7 +764,7 @@ class GitCodeReport:
 
 ## Issue 分析
 
-### 效率指标
+### 概览指标
 
 | 指标 | 数值 |
 |------|------|
@@ -553,30 +772,103 @@ class GitCodeReport:
 | 未关闭 | {issue_summary.get("opened_issues", 0)} |
 | 已关闭 | {issue_summary.get("closed_issues", 0)} |
 | 关闭率 | {issue_summary.get("close_rate", 0)}% |
-| 平均首次响应时间 | {issue_efficiency.get("avg_first_response_time_minutes", 0):.1f} 分钟 |
-| 平均关闭耗时 | {issue_efficiency.get("avg_close_duration_hours", 0):.1f} 小时 |
-| 24小时响应率 | {issue_efficiency.get("timely_response_rate", 0)}% |
-
-## PR 分析
 
 ### 效率指标
 
 | 指标 | 数值 |
 |------|------|
+| 平均首次响应时间 | {issue_efficiency.get("avg_first_response_time_minutes", 0):.1f} 分钟 |
+| 平均关闭耗时 | {issue_efficiency.get("avg_close_duration_hours", 0):.1f} 小时 |
+| 24小时响应率 | {issue_efficiency.get("timely_response_rate", 0)}% |
+| 响应时间样本数 | {issue_efficiency.get("response_time_samples", 0)} |
+| 关闭耗时样本数 | {issue_efficiency.get("close_duration_samples", 0)} |
+
+### 标签分布 Top 10
+
+| 标签 | 数量 |
+|------|------|
+'''
+        # Issue 标签分布
+        for label, count in list(issue_distribution.get("by_label", {}).items())[:10]:
+            md_content += f"| {label} | {count} |\n"
+
+        md_content += f'''
+### 创建人分布 Top 10
+
+| 创建人 | 数量 |
+|------|------|
+'''
+        # Issue 创建人分布
+        for creator, count in list(issue_distribution.get("by_creator", {}).items())[:10]:
+            md_content += f"| {creator} | {count} |\n"
+
+        md_content += f'''
+## PR 分析
+
+### 概览指标
+
+| 指标 | 数值 |
+|------|------|
 | 总 PR 数 | {pr_summary.get("total_prs", 0)} |
+| 打开中 | {pr_summary.get("opened_prs", 0)} |
 | 已合并 | {pr_summary.get("merged_prs", 0)} |
+| 已关闭(未合并) | {pr_summary.get("closed_prs", 0)} |
 | 合并率 | {pr_summary.get("merge_rate", 0)}% |
+| 冲突率 | {pr_summary.get("conflict_rate", 0)}% |
+
+### 效率指标
+
+| 指标 | 数值 |
+|------|------|
 | 平均首次评审时间 | {pr_efficiency.get("avg_first_review_time_minutes", 0):.1f} 分钟 |
 | 平均合并耗时 | {pr_efficiency.get("avg_merge_duration_hours", 0):.1f} 小时 |
+| 最短合并耗时 | {pr_efficiency.get("min_merge_duration_hours", 0):.1f} 小时 |
+| 最长合并耗时 | {pr_efficiency.get("max_merge_duration_hours", 0):.1f} 小时 |
+| 24小时评审率 | {pr_efficiency.get("timely_review_rate", 0)}% |
+| 评审时间样本数 | {pr_efficiency.get("review_time_samples", 0)} |
+| 合并耗时样本数 | {pr_efficiency.get("merge_duration_samples", 0)} |
 
 ### 质量指标
 
 | 指标 | 数值 |
 |------|------|
 | 平均变更行数 | {pr_quality.get("avg_change_lines", 0):.0f} |
+| 最大变更行数 | {pr_quality.get("max_change_lines", 0)} |
 | 大 PR 数 (>500行) | {pr_quality.get("large_pr_count", 0)} |
+| 大 PR 占比 | {pr_quality.get("large_pr_rate", 0)}% |
+| 评论密度 | {pr_quality.get("comment_density", 0):.4f} |
 | CI 成功率 | {pr_quality.get("ci_success_rate", 0)}% |
 
+### 创建者分布 Top 10
+
+| 创建者 | 数量 |
+|------|------|
+'''
+        # PR 创建者分布
+        for creator, count in list(pr_distribution.get("by_creator", {}).items())[:10]:
+            md_content += f"| {creator} | {count} |\n"
+
+        md_content += f'''
+### 目标分支分布
+
+| 分支 | 数量 |
+|------|------|
+'''
+        # PR 目标分支分布
+        for branch, count in list(pr_distribution.get("by_target_branch", {}).items())[:10]:
+            md_content += f"| {branch} | {count} |\n"
+
+        md_content += f'''
+### 评审者分布 Top 10
+
+| 评审者 | 数量 |
+|------|------|
+'''
+        # PR 评审者分布
+        for reviewer, count in list(pr_distribution.get("by_reviewer", {}).items())[:10]:
+            md_content += f"| {reviewer} | {count} |\n"
+
+        md_content += f'''
 ## 仓库统计
 
 ### 下载统计
@@ -586,16 +878,11 @@ class GitCodeReport:
 | 期间下载量 | {download_stats.get("period_total", 0)} |
 | 历史总下载 | {download_stats.get("history_total", 0):,} |
 | 日均下载 | {download_stats.get("daily_average", 0):.1f} |
+| 下载峰值日 | {download_stats.get("peak_date", "-")} |
+| 峰值下载量 | {download_stats.get("peak_count", 0)} |
 | 活跃下载天数 | {download_stats.get("active_days", 0)} |
 | 活跃下载占比 | {download_stats.get("active_days_rate", 0)}% |
-
-### Fork 统计
-
-| 指标 | 数值 |
-|------|------|
-| Fork 总数 | {fork_stats.get("total", 0)} |
-| 近 {self.days} 天新增 Fork | {fork_stats.get("new_in_period", 0)} |
-| Fork 人员数 | {fork_stats.get("unique_fork_owners", 0)} |
+| 下载趋势 | {download_trend_text} |
 
 #### 下载峰值 Top 10
 
@@ -606,6 +893,16 @@ class GitCodeReport:
             md_content += f"| {item.get('date', '-')} | {item.get('count', 0)} | {item.get('total', 0):,} |\n"
 
         md_content += f'''
+### Fork 统计
+
+| 指标 | 数值 |
+|------|------|
+| Fork 总数 | {fork_stats.get("total", 0)} |
+| 近 {self.days} 天新增 Fork | {fork_stats.get("new_in_period", 0)} |
+| Fork 人员数 | {fork_stats.get("unique_fork_owners", 0)} |
+| 个人 Fork 数 | {fork_stats.get("personal_forks", 0)} |
+| 组织 Fork 数 | {fork_stats.get("organization_forks", 0)} |
+
 #### Fork 人员 Top 10
 
 | 用户 | Fork 数 | 最新 Fork 时间 |
@@ -613,6 +910,15 @@ class GitCodeReport:
 '''
         for item in fork_stats.get("top_fork_users", [])[:10]:
             md_content += f"| {item.get('owner', '-')} | {item.get('count', 0)} | {item.get('latest_created_at', '-')[:19]} |\n"
+
+        md_content += f'''
+#### 最新 Fork 信息
+
+| 用户 | 类型 | 创建时间 |
+|------|------|----------|
+'''
+        for item in fork_stats.get("latest_forks", [])[:10]:
+            md_content += f"| {item.get('owner', '-')} | {item.get('namespace_type', '-')} | {item.get('created_at', '-')[:10]} |\n"
 
         md_content += f'''
 ## 社区活跃
@@ -624,6 +930,15 @@ class GitCodeReport:
 | 订阅用户总数 | {subscriber_stats.get("total", 0)} |
 | 近 {self.days} 天新增订阅 | {subscriber_stats.get("new_in_period", 0)} |
 
+#### 最新订阅用户
+
+| 用户 | 名称 | 订阅时间 |
+|------|------|----------|
+'''
+        for item in subscriber_stats.get("latest_subscribers", [])[:10]:
+            md_content += f"| {item.get('login', '-')} | {item.get('name', '-')} | {item.get('watch_at', '-')[:10]} |\n"
+
+        md_content += f'''
 ### 编程语言
 
 | 指标 | 数值 |
